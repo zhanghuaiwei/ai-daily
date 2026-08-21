@@ -1,0 +1,67 @@
+{# ============================================================
+   公众号日报模板 —— 所有样式必须内联（style="..."）
+   原因：公众号编辑器粘贴时只保留内联样式，<style> 块会被剥掉。
+   TODO(学习者): 想换配色/字号，直接改这里的 style 字符串即可。
+   当前主题：清爽蓝白，正文 15px / 行高 1.8（公众号最舒适的阅读参数）
+============================================================ #}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AI 前沿日报 · {{ date }}</title>
+</head>
+<body style="margin:0; padding:0; background:#ffffff;">
+
+<section style="max-width:677px; margin:0 auto; padding:24px 20px; font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue','PingFang SC','Microsoft YaHei',sans-serif;">
+
+  {# ---------- 头部 ---------- #}
+  <section style="text-align:center; margin-bottom:28px;">
+    <p style="font-size:13px; color:#8a8a8a; letter-spacing:2px; margin:0 0 6px;">AI FRONTIER DAILY</p>
+    <h1 style="font-size:22px; font-weight:bold; color:#1a1a1a; margin:0 0 8px; line-height:1.4;">AI 前沿日报</h1>
+    <p style="font-size:14px; color:#576b95; margin:0;">{{ date }} · 今日精选 {{ count }} 条</p>
+    <section style="width:36px; height:3px; background:#1e73be; margin:16px auto 0;"></section>
+  </section>
+
+  {# ---------- 正文：每条一个卡片 ---------- #}
+  {% for p in picks %}
+  <section style="margin:0 0 32px;">
+
+    {# 序号 + 分类标签 #}
+    <section style="margin-bottom:12px;">
+      <section style="display:inline-block; padding:3px 10px; background:#1e73be; color:#ffffff; font-size:13px; border-radius:4px; margin-right:8px;">{{ '%02d' % loop.index }}</section>
+      <section style="display:inline-block; padding:3px 10px; background:#eef4fb; color:#1e73be; font-size:13px; border-radius:4px;">{{ p.category or 'AI 动态' }}</section>
+    </section>
+
+    {# 标题 #}
+    <h2 style="font-size:17px; font-weight:bold; color:#1a1a1a; margin:0 0 10px; line-height:1.5;">{{ p.title }}</h2>
+
+    {# 摘要 #}
+    {% if p.summary %}
+    <p style="font-size:15px; color:#3f3f3f; line-height:1.8; margin:0 0 12px; text-align:justify;">{{ p.summary }}</p>
+    {% endif %}
+
+    {# 价值理由（蓝色左边框卡片） #}
+    <section style="background:#f7f9fc; border-left:3px solid #1e73be; padding:10px 14px; margin:0 0 10px; border-radius:0 4px 4px 0;">
+      <p style="font-size:14px; color:#555555; line-height:1.75; margin:0; text-align:justify;">
+        <strong style="color:#1e73be;">为什么值得关注：</strong>{{ p.reason }}
+      </p>
+    </section>
+
+    {# 来源 #}
+    <p style="font-size:13px; color:#999999; margin:0;">
+      来源：{{ p.source }}{% if p.link %} · <a href="{{ p.link }}" style="color:#576b95; text-decoration:none;">原文链接</a>{% endif %}
+    </p>
+  </section>
+  {% endfor %}
+
+  {# ---------- 底部 ---------- #}
+  <section style="border-top:1px solid #eeeeee; padding-top:16px; margin-top:8px;">
+    <p style="font-size:13px; color:#999999; line-height:1.7; margin:0; text-align:center;">
+      本文由 AI 流水线自动筛选生成，人工审核后发布<br/>
+      聚焦 AI Coding 与具身智能 · 每日更新
+    </p>
+  </section>
+
+</section>
+</body>
+</html>

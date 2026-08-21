@@ -1,0 +1,69 @@
+# ============================================================
+# 信息源配置（全部经过实测验证，2026-08）
+# TODO(学习者): 按你的口味增删。抓取失败的源会自动跳过，不会中断管道。
+# priority: 数字越小越重要，LLM 不可用时的兜底排序也会参考它
+# ============================================================
+sources:
+  # ---------- 一手源（官方发布，最快最准） ----------
+  - name: "Google DeepMind Blog"
+    url: "https://deepmind.google/blog/rss.xml"
+    category: "一手源"
+    priority: 1
+
+  - name: "arXiv cs.AI"
+    url: "http://export.arxiv.org/rss/cs.AI"
+    category: "论文"
+    priority: 3
+
+  # ---------- 英文每日聚合（精选+摘要，漏斗第一层） ----------
+  # AI Coding 圈最全日报，每天一篇，几乎覆盖全部 agent/工具动态
+  - name: "AI News (smol.ai)"
+    url: "https://news.smol.ai/rss.xml"
+    category: "英文聚合/AI Coding"
+    priority: 1
+
+  - name: "The Rundown AI"
+    url: "https://www.therundown.ai/feed"
+    category: "英文聚合"
+    priority: 1
+
+  # ---------- 科技媒体（重大发布的一手报道） ----------
+  - name: "TechCrunch AI"
+    url: "https://techcrunch.com/category/artificial-intelligence/feed/"
+    category: "科技媒体"
+    priority: 2
+
+  - name: "The Verge AI"
+    url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+    category: "科技媒体"
+    priority: 2
+
+  - name: "VentureBeat AI"
+    url: "https://venturebeat.com/category/ai/feed/"
+    category: "科技媒体"
+    priority: 2
+
+  - name: "MIT Tech Review AI"
+    url: "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+    category: "科技媒体"
+    priority: 2
+
+  # ---------- 社区热点（判断"是否真热门"的信号源） ----------
+  - name: "Hacker News · AI 高分帖"
+    url: "https://hnrss.org/newest?q=AI&points=100"
+    category: "社区热点"
+    priority: 2
+
+  - name: "Hacker News 首页"
+    url: "https://hnrss.org/frontpage"
+    category: "社区热点"
+    priority: 2
+
+  # ---------- 中文源（对照补充，经 RSSHub） ----------
+  # 注意：RSSHub 公共实例在国内网络/部分沙箱可能连不上，失败会自动跳过；
+  # GitHub Actions 海外 runner 上通常可达。要稳定就自建：
+  #   docker run -d -p 1200:1200 diygod/rsshub
+  - name: "机器之心日报"
+    url: "https://rsshub.app/jiqizhixin/daily"
+    category: "中文"
+    priority: 3
