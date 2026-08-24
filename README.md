@@ -70,7 +70,7 @@ flowchart TD
 
 - Python 3.11 或更高版本
 - 可访问 RSS 源的网络
-- 用于生成正式文章的 OpenAI 兼容文字模型 API
+- 用于生成正式文章的 OpenAI API key（默认模型为 GPT-5.6 Terra）
 - 可选：图像生成 API、Server酱 Turbo SendKey、QQ 邮箱授权码
 
 ### 2. 安装
@@ -114,9 +114,10 @@ python -m src.pipeline --articles 2 --target-chars 2000
 
 | 变量 | 使用位置 | 必需 | 默认值或未配置行为 | 用途 |
 |---|---|---:|---|---|
-| `LLM_API_KEY` | 本地、Actions | 正式文章必需 | 缺失时仅生成不可发布预览 | 选题、调研卡、写作和终审 |
-| `LLM_BASE_URL` | 本地、Actions | 否 | `https://api.deepseek.com/v1` | OpenAI 兼容文字接口地址 |
-| `LLM_MODEL` | 本地、Actions | 否 | `deepseek-v4-pro` | 文字模型名称 |
+| `LLM_API_KEY` | 本地、Actions | 正式文章必需 | 缺失时仅生成不可发布预览 | OpenAI API key；用于选题、调研卡、写作和终审 |
+| `LLM_BASE_URL` | 本地、Actions | 否 | `https://api.openai.com/v1` | OpenAI API 地址 |
+| `LLM_MODEL` | 本地、Actions | 否 | `gpt-5.6-terra` | 默认使用兼顾文章质量和成本的 [GPT-5.6 Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra) |
+| `LLM_REASONING_EFFORT` | 本地、Actions | 否 | `medium` | GPT-5.6 推理强度：`none`、`low`、`medium`、`high`、`xhigh` 或 `max` |
 | `IMAGE_API_KEY` | 本地、Actions | 否 | 缺失时继续输出文字版 | 封面和正文插图生成 |
 | `IMAGE_BASE_URL` | 本地、Actions | 否 | `https://api.openai.com/v1` | 图像接口地址 |
 | `IMAGE_MODEL` | 本地、Actions | 否 | `gpt-image-2` | 图像模型名称 |
@@ -127,7 +128,7 @@ python -m src.pipeline --articles 2 --target-chars 2000
 | `EMAIL_TO` | 本地、Actions | 否 | 默认发送给 `QQ_EMAIL_USER` | 邮件收件地址 |
 | `PUBLIC_ASSET_ROOT_URL` | Actions | 否 | 使用提交后的 GitHub 原始文件地址 | 私有仓库中的公开图片根地址 |
 
-不同服务商的模型名、接口兼容度和结构化输出稳定性不同。更换文字模型时只需调整 `LLM_BASE_URL` 与 `LLM_MODEL`，但应重新跑测试并人工检查至少一批文章。
+默认配置直接调用 OpenAI。项目仍保留 OpenAI 兼容接口入口；切换其他服务商时可调整 `LLM_BASE_URL` 与 `LLM_MODEL`，但应重新跑测试并人工检查至少一批文章。
 
 ## 部署到 GitHub Actions
 

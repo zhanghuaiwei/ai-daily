@@ -29,9 +29,10 @@ git push -u origin main
 
 | Name | Value |
 |---|---|
-| `LLM_API_KEY` | 你的 DeepSeek key（`sk-` 开头） |
-| `LLM_BASE_URL` | `https://api.deepseek.com/v1` |
-| `LLM_MODEL` | `deepseek-v4-pro` |
+| `LLM_API_KEY` | 你的 OpenAI API key（`sk-` 开头） |
+| `LLM_BASE_URL` | `https://api.openai.com/v1` |
+| `LLM_MODEL` | `gpt-5.6-terra` |
+| `LLM_REASONING_EFFORT` | `medium`（可省略） |
 | `IMAGE_API_KEY` | 你的 OpenAI API key（图像生成使用） |
 | `IMAGE_BASE_URL` | `https://api.openai.com/v1`（可省略） |
 | `IMAGE_MODEL` | `gpt-image-2`（可省略） |
@@ -40,8 +41,8 @@ git push -u origin main
 | `QQ_EMAIL_AUTH_CODE` | QQ 邮箱 SMTP 授权码，不能填写登录密码 |
 | `EMAIL_TO` | 收件邮箱（可省略，默认与发件账号相同） |
 
-> DeepSeek key 在 [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) 创建。
-> 想换回 OpenAI：BASE_URL 填 `https://api.openai.com/v1`、MODEL 填 `gpt-4o-mini`，其余不动。
+> OpenAI API key 在 [API Keys](https://platform.openai.com/api-keys) 页面创建，只放 GitHub Secrets，不要提交到仓库。
+> 默认文字模型为 [`gpt-5.6-terra`](https://developers.openai.com/api/docs/models/gpt-5.6-terra)；如果账户暂时没有该模型权限，可在确认可用模型后覆盖 `LLM_MODEL`。
 > 配图默认使用 GPT Image 2。若接口提示模型权限问题，请检查余额，并按[图像生成官方说明](https://developers.openai.com/api/docs/guides/image-generation)完成必要的组织验证。
 > 微信推送密钥在 [Server酱 SendKey 页面](https://sct.ftqq.com/docs/getting-started/sendkey/) 获取。密钥只放 GitHub Secrets，不要写进代码。
 > QQ 邮箱需先在邮箱设置中开启 IMAP/SMTP 并生成授权码；项目使用 `smtp.qq.com:465` 发信，并通过 `imap.qq.com:993` 只清理带专用标记的过期项目邮件。

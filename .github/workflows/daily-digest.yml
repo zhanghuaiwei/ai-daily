@@ -32,10 +32,11 @@ jobs:
 
       - name: Run pipeline
         env:
-          # LLM 用哪家服务就在 Secrets 里配这三个（见 README 第 4 步）
+          # 默认使用 OpenAI GPT-5.6 Terra；Secrets 仍可覆盖接口和模型。
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          LLM_REASONING_EFFORT: ${{ secrets.LLM_REASONING_EFFORT }}
           # 配图独立使用图像接口；默认模型由代码设为 gpt-image-2。
           IMAGE_API_KEY: ${{ secrets.IMAGE_API_KEY }}
           IMAGE_BASE_URL: ${{ secrets.IMAGE_BASE_URL }}

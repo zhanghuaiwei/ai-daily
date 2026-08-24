@@ -1,7 +1,7 @@
 """LLM 选题编辑器：聚类候选事件并规划 1-2 篇、最多 3 篇独立文章。
 
-接口兼容任意 OpenAI 风格的服务（OpenAI / DeepSeek / Kimi / 通义 / GLM ...），
-通过环境变量 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL 控制。
+默认使用 OpenAI GPT-5.6 Terra，同时保留 OpenAI 兼容服务的配置入口，
+通过环境变量 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / LLM_REASONING_EFFORT 控制。
 
 没配 API key 时保留优先级、新鲜度和 AI 相关性兜底，产物标记为待人工审核。
 旧的日报精选函数继续保留，供总览和兼容调用使用。
@@ -19,6 +19,9 @@ from .fetcher import FeedItem
 from .safety import clean_plain_text, normalize_url_for_dedupe, safe_http_url, sanitize_pick
 
 log = logging.getLogger(__name__)
+DEFAULT_LLM_BASE_URL = "https://api.openai.com/v1"
+DEFAULT_LLM_MODEL = "gpt-5.6-terra"
+_GPT_5_6_REASONING_EFFORTS = {"none", "low", "medium", "high", "xhigh", "max"}
 _AI_TOPIC_RE = re.compile(
     r"\b(AI|LLM|VLM|VLA|agentic|agent|robotics?|transformer|diffusion|inference|"
     r"machine learning|deep learning|neural|generative|embedding|fine-tun|reasoning model)\b|"
@@ -100,7 +103,7 @@ TOPIC_PROMPT = """请把候选资讯按“同一事件或同一技术主题”�
 
 
 def _build_client() -> OpenAI | None:
-    api_key = os.environ.get("LLM_API_KEY")
+    api_key = os.environ.get("LLM_API_KEY", "").strip()
     if not api_key:
         return None
     try:
@@ -113,10 +116,24 @@ def _build_client() -> OpenAI | None:
         timeout, max_retries = 180.0, 1
     return OpenAI(
         api_key=api_key,
-        base_url=os.environ.get("LLM_BASE_URL", "https://api.deepseek.com/v1"),
+        base_url=os.environ.get("LLM_BASE_URL", "").strip() or DEFAULT_LLM_BASE_URL,
         timeout=timeout,
         max_retries=max_retries,
     )
+
+
+def _completion_options(model: str, temperature: float) -> dict:
+    """Return parameters supported by the selected model family."""
+    if model.startswith("gpt-5.6"):
+        effort = os.environ.get("LLM_REASONING_EFFORT", "medium").strip().lower()
+        if effort not in _GPT_5_6_REASONING_EFFORTS:
+            log.warning("LLM_REASONING_EFFORT 配置无效，使用默认值 medium")
+            effort = "medium"
+        return {
+            "reasoning_effort": effort,
+            "response_format": {"type": "json_object"},
+        }
+    return {"temperature": temperature}
 
 
 def _sample_items(items: list[FeedItem], limit: int = 80) -> list[dict]:
@@ -161,13 +178,14 @@ def request_json(
     client = _build_client()
     if client is None:
         raise RuntimeError("未配置 LLM_API_KEY")
+    model_name = (model or os.environ.get("LLM_MODEL", "")).strip() or DEFAULT_LLM_MODEL
     response = client.chat.completions.create(
-        model=model or os.environ.get("LLM_MODEL", "deepseek-v4-pro"),
+        model=model_name,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=temperature,
+        **_completion_options(model_name, temperature),
     )
     content = (response.choices[0].message.content or "").strip()
     if "</think>" in content:

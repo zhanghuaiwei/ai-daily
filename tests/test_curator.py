@@ -62,6 +62,52 @@ def fake_client(completions):
     return SimpleNamespace(chat=SimpleNamespace(completions=completions))
 
 
+class RecordingCompletions(ContentCompletions):
+    def __init__(self, content: str):
+        super().__init__(content)
+        self.kwargs = None
+
+    def create(self, **kwargs):
+        self.kwargs = kwargs
+        return super().create(**kwargs)
+
+
+def test_openai_defaults_are_used_when_optional_values_are_empty(monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setenv("LLM_BASE_URL", "")
+    captured = {}
+
+    def fake_openai(**kwargs):
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(curator, "OpenAI", fake_openai)
+    assert curator._build_client() is not None
+    assert captured["base_url"] == "https://api.openai.com/v1"
+
+
+def test_request_json_uses_gpt_5_6_structured_output_options(monkeypatch):
+    completions = RecordingCompletions('{"result": "ok"}')
+    monkeypatch.setattr(curator, "_build_client", lambda: fake_client(completions))
+    monkeypatch.setenv("LLM_MODEL", "")
+    monkeypatch.setenv("LLM_REASONING_EFFORT", "medium")
+
+    assert curator.request_json("system", "user", temperature=0.6) == {"result": "ok"}
+    assert completions.kwargs["model"] == "gpt-5.6-terra"
+    assert completions.kwargs["reasoning_effort"] == "medium"
+    assert completions.kwargs["response_format"] == {"type": "json_object"}
+    assert "temperature" not in completions.kwargs
+
+
+def test_non_gpt_5_6_provider_keeps_temperature(monkeypatch):
+    completions = RecordingCompletions('{"result": "ok"}')
+    monkeypatch.setattr(curator, "_build_client", lambda: fake_client(completions))
+
+    curator.request_json("system", "user", model="compatible-model", temperature=0.2)
+    assert completions.kwargs["temperature"] == 0.2
+    assert "reasoning_effort" not in completions.kwargs
+
+
 def test_transport_error_degrades_to_fallback(monkeypatch):
     items = [make_item("new", "A", 2), make_item("old", "A", 1)]
     monkeypatch.setattr(curator, "_build_client", lambda: fake_client(RaisingCompletions()))
