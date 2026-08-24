@@ -1,221 +1,352 @@
-# AI 前沿公众号文章生产线 · ai-daily
+# ai-daily：AI 前沿公众号文章生产线
 
-> 每日自动发现 AI 前沿话题，默认生成 1-2 篇、最多 3 篇独立公众号文章；完成调研、写作、扩写润色、标题测试、去 AI 味、封面/插图生成和质量自检后推送到个人微信与 QQ 邮箱。
+[![CI](https://github.com/zhanghuaiwei/ai-daily/actions/workflows/ci.yml/badge.svg)](https://github.com/zhanghuaiwei/ai-daily/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/zhanghuaiwei/ai-daily?style=flat)](https://github.com/zhanghuaiwei/ai-daily/stargazers)
 
+> 从 11 个 AI 信息源自动发现前沿话题，完成选题、交叉调研、中文写作、扩写润色、标题测试、去 AI 味、质量自检和可选配图，再将一题一文的公众号成品送到微信与 QQ 邮箱。
+
+默认每天以 2 篇为目标，推荐发布 1–2 篇，硬上限 3 篇。质量不足时宁可少发：未通过文字质量门禁的内容只保留为待审核稿，不会被当作正式文章投递。
+
+[快速开始](#快速开始) · [工作流程](#工作流程) · [配置说明](#配置说明) · [自动化部署](#部署到-github-actions) · [参与贡献](#参与贡献) · [MIT License](./LICENSE)
+
+## 项目定位
+
+`ai-daily` 是一个可自托管、可审计、无需常驻服务器的公众号编辑工作流。它适合希望持续追踪 AI 动态、减少资料整理和初稿编辑时间，同时保留最终人工审核权的个人作者或小型内容团队。
+
+| 适合 | 不适合 |
+|---|---|
+| AI 前沿资讯、技术解读和行业观察 | 无来源支撑的批量洗稿 |
+| 中文泛读者公众号文章 | 无人审核的高风险自动发布 |
+| GitHub Actions 定时运行 | 要求完全离线运行的场景 |
+| 使用 OpenAI 兼容文字接口 | 需要稳定公共 API 或多租户后台的产品 |
+
+项目不会模拟登录公众号，也不会绕过平台权限。默认交付的是“可供人工终审的文章成品”，最终事实核验、版权判断和发布决定仍由使用者负责。
+
+## 工作流程
+
+```mermaid
+flowchart TD
+    A["11 个 RSS 信息源"] --> B["并发抓取、时间窗过滤与跨天去重"]
+    B --> C["事件聚类与选题评分"]
+    C --> D["原文抓取与最多 4 个来源交叉调研"]
+    D --> E["事实调研卡"]
+    E --> F["初稿、扩写润色与标题 A/B 测试"]
+    F --> G{"文字质量门禁"}
+    G -->|未通过| H["待审核稿，不正式投递"]
+    G -->|通过| I["1 张封面与 0–5 张按需插图"]
+    I -->|生成失败| J["降级为文字版"]
+    I -->|生成成功| K["图文版"]
+    J --> L["Markdown、HTML、JSON"]
+    K --> L
+    L --> M["QQ 邮箱图文邮件"]
+    L --> N["Server酱推送到个人微信"]
+    M --> O["人工终审并发布公众号"]
+    N --> O
 ```
-RSS 信息源（11 源，英文一手 + 聚合 + 中文）
-        │  GitHub Actions 定时抓取（北京时间 07:30）
-        ▼
-   选题编辑 ──── 事件聚类 + 实时性/前沿性/证据质量评分
-        │
-        ▼
-   调研器 ───── 抓取原文 + 最多 4 个来源交叉验证 + 事实调研卡
-        │
-        ▼
-   写作/终审 ── 标题 A/B 测试 + 初稿 + 扩写润色 + 去 AI 味 + 质量门禁
-        │
-        ▼
-   配图编辑 ─── 尝试生成 1 张宽幅封面 + 0-5 张章节插图，失败则降级为文字版
-        │
-        ├──── article.* + images/（一题一文、图文排版）
-        ├──── 提交图片后由 Server酱推送到个人微信
-        └──── QQ SMTP 发送内嵌图文邮件
-                     │
-                     ▼
-        人工：微信审稿 → 打开 HTML → 粘贴进个人公众号 → 发布
-```
 
-## 特性
+每天北京时间 07:30 由 GitHub Actions 启动主流程。配图不是发布硬门槛：没有配图计划、未配置图像密钥或图像接口异常时，合格的文字文章仍会正常生成和投递。
 
-- **11 个高质量信息源**：Google DeepMind 官方博客、arXiv、smol.ai AI News、The Rundown、TechCrunch/Verge/VentureBeat/MIT Tech Review、Hacker News 等；单源不可达不会拖垮日报
-- **一题一文**：默认每日推荐 1-2 篇，硬上限 3 篇；每个最终话题生成独立文章目录
-- **智能选题**：同一事件自动聚类，按实时性、前沿性、技术含量、证据质量和泛读者价值筛选
-- **跨源调研**：每个话题抓取最多 4 个原文，生成带来源编号的事实、争议、不确定性和术语调研卡
-- **完整编辑链**：初稿 → 扩写润色 → 过渡段整理 → 去 AI 味 → 终审，不直接发布一次生成结果
-- **标题与摘要**：每篇生成 5 个标题方案并评分，选择最高分标题，同时生成公众号摘要
-- **按需配图**：每篇尝试生成 1 张 900×383 封面；正文根据内容价值配置 0-5 张 1200×800 插图，并自动放在最相关章节后
-- **内容型插图**：图像脚本来自文章本身，优先解释工作机制、结构关系和真实影响；禁止图中文字、水印、标志、伪造界面和虚构新闻现场
-- **中文优先**：面向泛读者，普通概念不附英文翻译，只保留模型名、论文名、API、代码等必要技术术语
-- **文字质量门禁**：自动检查篇幅、中文比例、引用覆盖、结构、AI 套话、标题质量和事实状态；不合格文章只输出待审核稿，不推送成品
-- **配图柔性降级**：计划中的图片成功时输出图文版；不需要插图、密钥缺失或接口异常时继续输出并推送文字版，同时在 `article.json` 记录状态
-- **跨天去重**：同时使用历史链接和历史话题标题，避免同一事件换链接重复发布
-- **个人微信图文投递**：图片先提交到仓库，再把公网图片地址写入 Markdown，通过 Server酱 Turbo 推送到个人微信
-- **QQ 邮箱图文投递**：通过 QQ SMTP 加密连接发送完整文章，图片以内嵌附件呈现，不依赖公网图片地址
-- **双周自动清理**：每 14 天删除更早的 `output/日期/` 目录，并通过 QQ IMAP 只删除带项目专用标记的过期文章邮件
-- **独立产物**：每篇文章都有公众号 HTML、Markdown、JSON；每日另有选题总览和标题测试索引
-- **鲁棒设计**：RSS 并发抓取 + 超时重试、单源失败隔离、LLM 网络/格式异常自动降级、北京时间固定、Actions 并发保护
-- **内容安全**：RSS 视为不可信数据，模型输出只接受真实候选链接，HTML/Markdown 统一净化且仅允许 HTTP(S) 链接
-- **零服务器**：纯 GitHub Actions + Secrets；API 成本取决于文章数量、原文长度和模型价格
+## 核心能力
 
-## 环境要求
-
-- Python 3.11+
-- GitHub 账号（用 Actions 定时运行，无需服务器）
-- 任意 OpenAI 兼容 LLM API（推荐中文写作能力较好的模型）
-- 支持图像生成的 OpenAI API key（默认使用 `gpt-image-2`；与文字模型密钥分开配置）
-- Server酱 Turbo SendKey（用于个人微信推送，可先不配置）
-- QQ 邮箱 SMTP 授权码（用于邮件推送，可先不配置；不能使用 QQ 登录密码）
+- **多源选题**：内置 Google DeepMind、arXiv、AI News、The Rundown、TechCrunch、The Verge、VentureBeat、MIT Technology Review、Hacker News 和中文源；单源失败不会中断整次任务。
+- **一题一文**：同一事件先聚类，再为每个最终话题建立独立文章目录，避免把多条新闻拼成信息流水账。
+- **证据约束写作**：原文调研形成带来源编号的事实、来源方说法、合理推断和不确定项；具体事实需能回溯到证据。
+- **完整编辑链**：调研卡 → 初稿 → 扩写润色 → 过渡段整理 → 去 AI 味 → 终审，不直接发布一次生成结果。
+- **标题与摘要**：每篇产生 3–5 个不同角度的标题候选并评分，同时生成公众号摘要。
+- **中文优先**：普通概念不机械附带英文解释，只保留模型名、论文名、API、代码等必要技术术语。
+- **质量门禁**：检查篇幅、中文比例、引用覆盖、文章结构、标题质量、常见 AI 套话和模型终审结果。
+- **内容型配图**：尝试生成 1 张 900×383 封面和 0–5 张 1200×800 正文插图；插图脚本来自对应章节，而不是通用机器人背景图。
+- **柔性降级**：文字接口失败时输出不可发布的资料预览；图像接口失败时保留可发布的文字版；微信或邮箱未配置时仍保留仓库产物。
+- **多格式产物**：同时生成公众号 HTML、Markdown 和机器可读 JSON，便于复制发布、二次编辑、归档和扩展。
+- **双通道投递**：Server酱负责个人微信提醒与正文，QQ SMTP 邮件使用内嵌图片，不依赖公网图片地址。
+- **生命周期管理**：双周清理过期输出和带项目标记的 QQ 邮件，不按标题模糊匹配，也不触碰普通邮件。
+- **安全边界**：RSS 和模型输出均按不可信数据处理；链接、HTML、Markdown 和模型结构化输出都会经过约束与净化。
 
 ## 快速开始
 
+### 1. 环境要求
+
+- Python 3.11 或更高版本
+- 可访问 RSS 源的网络
+- 用于生成正式文章的 OpenAI 兼容文字模型 API
+- 可选：图像生成 API、Server酱 Turbo SendKey、QQ 邮箱授权码
+
+### 2. 安装
+
 ```bash
-git clone git@github.com:<你的用户名>/ai-daily.git
+git clone https://github.com/zhanghuaiwei/ai-daily.git
 cd ai-daily
-python3 -m pip install -r requirements.lock
 
-# 1. 配文字模型和图像模型（复制模板）
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.lock
+
 cp .env.example .env
-# 填 LLM_API_KEY；正式图文成品还需填 IMAGE_API_KEY
-
-# 2. 本地试跑（默认生成 1-2 篇、每篇约 2000 字）
-python3 -m src.pipeline --articles 2 --target-chars 2000
-
-# 3. 无 key 调试（不生成可发布成品、不触发微信）
-python3 -m src.pipeline --dry-run
-
-# 4. 微信图文推送推荐交给 Actions：图片会先提交，再投递公网地址
-
-# 正式产物在 output/<北京时间日期>/ 下；dry-run 写入 output-dryrun/
 ```
 
-## 部署到 GitHub（4 步）
+Windows PowerShell 激活虚拟环境时使用：
 
-详细分步见 [DEPLOY.md](./DEPLOY.md)（含验证点和失败排查表），核心动作：
-
-1. **推送仓库**：`git remote add origin ... && git push -u origin main`
-2. **配置文字、图像和投递 Secrets**（Settings → Secrets → Actions）：
-   - `LLM_API_KEY` = 你的 DeepSeek key
-   - `LLM_BASE_URL` = `https://api.deepseek.com/v1`
-   - `LLM_MODEL` = `deepseek-v4-pro`
-   - `IMAGE_API_KEY` = 你的 OpenAI API key
-   - `IMAGE_BASE_URL` = `https://api.openai.com/v1`（可省略）
-   - `IMAGE_MODEL` = `gpt-image-2`（可省略）
-   - `WECHAT_SENDKEY` = 你的 Server酱 Turbo SendKey
-   - `QQ_EMAIL_USER` = 作为发件人使用的完整 QQ 邮箱地址
-   - `QQ_EMAIL_AUTH_CODE` = QQ 邮箱 SMTP 授权码，不是登录密码
-   - `EMAIL_TO` = 收件邮箱（可省略，默认发给 `QQ_EMAIL_USER` 自己）
-3. **手动触发验证**：Actions → AI Daily Digest → Run workflow，看日志全绿
-4. **之后每天自动跑**：workflow 使用 `Asia/Shanghai` 时区，已配置北京时间 07:30
-
-> 想换 OpenAI/Kimi/通义/GLM？只要 OpenAI 兼容接口，改 BASE_URL 和 MODEL 即可。
-
-## 每日发布流程
-
-1. 通过文字质量门禁的文章会分别推送到个人微信和 QQ 邮箱；配图成功时推送图文版，否则推送文字版。
-2. 在微信中通读文章，重点核对事实、数字、标题和来源。
-3. 打开仓库 `output/<北京时间日期>/article-XX/article_wechat.html`。
-4. 浏览器打开 → 全选复制 → 粘贴到个人公众号编辑器；若编辑器没有带入本地图片，按原位置上传 `images/` 中对应文件。
-5. 使用 `images/cover.jpg` 作为公众号封面，预览并人工发布。
-
-个人公众号没有发布接口时，项目只负责把审稿成品送到微信，不模拟登录或绕过平台限制。
-
-## 目录结构
-
-```
-ai-daily/
-├── .github/workflows/
-│   ├── daily-digest.yml                # 每日 07:30 定时任务
-│   ├── biweekly-cleanup.yml             # 每 14 天清理过期输出和项目邮件
-│   └── ci.yml                          # push / PR 自动测试
-├── config/sources.yaml                 # 信息源清单（加源改这里）
-├── src/
-│   ├── fetcher.py                      # 并发 RSS 抓取 + 超时重试 + 去重
-│   ├── curator.py                      # LLM 筛选、结构校验、异常降级
-│   ├── history.py                      # 跨天已发布链接去重
-│   ├── researcher.py                   # 原文抓取与跨源证据包
-│   ├── writer.py                       # 调研卡、写作、润色与质量门禁
-│   ├── illustrator.py                  # 可选封面/正文图生成、裁切与状态记录
-│   ├── delivery.py                     # Server酱个人微信投递
-│   ├── email_delivery.py               # QQ SMTP 图文邮件投递
-│   ├── safety.py                       # 文本与 URL 安全边界
-│   ├── renderer.py                     # 总览与独立文章渲染
-│   └── pipeline.py                     # 入口
-├── tests/                              # 单元与集成测试
-├── templates/wechat.html               # 选题总览模板
-├── templates/article.html              # 单篇公众号文章模板
-├── .env.example                        # 文字、图像和微信配置模板
-├── requirements.lock                   # Actions 使用的锁定生产依赖
-├── requirements-dev.lock               # 测试依赖
-├── DEPLOY.md                           # 部署与发布手册
-└── output/YYYY-MM-DD/
-    ├── digest.*                        # 当日选题总览
-    ├── articles.json                   # 标题测试、评分与文章索引
-    ├── article-01/
-    │   ├── article.*                   # 第 1 个话题的独立文章
-    │   └── images/                     # cover.jpg + 0-5 张正文插图
-    └── article-02/                      # 第 2 个话题，结构相同
+```powershell
+.venv\Scripts\Activate.ps1
 ```
 
-## 自定义（改完 commit + push 即生效）
+### 3. 首次运行
 
-- **加/删信息源**：`config/sources.yaml`（如加 `http://export.arxiv.org/rss/cs.RO` 盯具身智能论文）
-- **改每日篇数**：`--articles 1` 到 `--articles 3`，默认 2
-- **改文章长度**：`--target-chars 1600` 到 `--target-chars 3000`，默认 2000
-- **调选题口味**：修改 `src/curator.py` 的 `TOPIC_PROMPT`
-- **调写作和去 AI 味**：修改 `src/writer.py` 的写作、编辑提示词和质量门禁
-- **调配图风格与质量**：修改 `src/illustrator.py`，或设置 `IMAGE_QUALITY=low|medium|high`
-- **改排版**：编辑 `templates/article.html`（全部内联 CSS）
-- **改时间窗**：workflow 里给 pipeline 加 `--window-hours 48`
-- **改去重周期**：给 pipeline 加 `--history-days 14`；设为 `0` 可关闭
-- **改清理保留期**：修改 `biweekly-cleanup.yml` 中两个 `14`；清理器只识别 `output/YYYY-MM-DD/`
-- **改发布时间**：workflow 同时修改 `cron: '30 7 * * *'` 和 `timezone: 'Asia/Shanghai'`
-- **自建 RSSHub**（可选，公共实例不稳时）：`docker run -d -p 1200:1200 diygod/rsshub`
-
-## 测试
+先执行不调用大模型的安全预览：
 
 ```bash
-python3 -m pip install -r requirements-dev.lock
-python3 -m pytest
+python -m src.pipeline --dry-run --window-hours 72
 ```
 
-每次 push / PR 都会由 CI 在 Python 3.11 上执行编译、Ruff 静态检查和测试。
+预览会写入 `output-dryrun/<北京时间日期>/`，内容始终标记为不可发布。确认 RSS 抓取与模板渲染正常后，在 `.env` 中至少填写 `LLM_API_KEY`，再执行正式流程：
+
+```bash
+python -m src.pipeline --articles 2 --target-chars 2000
+```
+
+正式产物写入 `output/<北京时间日期>/`。命令只负责生成文章；本地投递可以分别调用 `src.email_delivery` 和 `src.delivery`，日常使用更推荐交给 GitHub Actions。
+
+## 配置说明
+
+将 `.env.example` 复制为 `.env` 用于本地运行；部署到 GitHub 后，将工作流需要的配置保存到仓库的 **Settings → Secrets and variables → Actions**。不要提交真实密钥。
+
+| 变量 | 使用位置 | 必需 | 默认值或未配置行为 | 用途 |
+|---|---|---:|---|---|
+| `LLM_API_KEY` | 本地、Actions | 正式文章必需 | 缺失时仅生成不可发布预览 | 选题、调研卡、写作和终审 |
+| `LLM_BASE_URL` | 本地、Actions | 否 | `https://api.deepseek.com/v1` | OpenAI 兼容文字接口地址 |
+| `LLM_MODEL` | 本地、Actions | 否 | `deepseek-v4-pro` | 文字模型名称 |
+| `IMAGE_API_KEY` | 本地、Actions | 否 | 缺失时继续输出文字版 | 封面和正文插图生成 |
+| `IMAGE_BASE_URL` | 本地、Actions | 否 | `https://api.openai.com/v1` | 图像接口地址 |
+| `IMAGE_MODEL` | 本地、Actions | 否 | `gpt-image-2` | 图像模型名称 |
+| `IMAGE_QUALITY` | 本地 | 否 | `medium` | `low`、`medium` 或 `high`；Actions 修改需同步调整工作流环境变量 |
+| `WECHAT_SENDKEY` | 本地、Actions | 否 | 缺失时跳过微信投递 | Server酱 Turbo SendKey |
+| `QQ_EMAIL_USER` | 本地、Actions | 否 | 缺失时跳过 QQ 投递和清理 | 完整 QQ 邮箱地址 |
+| `QQ_EMAIL_AUTH_CODE` | 本地、Actions | 否 | 缺失时跳过 QQ 投递和清理 | SMTP/IMAP 授权码，不是登录密码 |
+| `EMAIL_TO` | 本地、Actions | 否 | 默认发送给 `QQ_EMAIL_USER` | 邮件收件地址 |
+| `PUBLIC_ASSET_ROOT_URL` | Actions | 否 | 使用提交后的 GitHub 原始文件地址 | 私有仓库中的公开图片根地址 |
+
+不同服务商的模型名、接口兼容度和结构化输出稳定性不同。更换文字模型时只需调整 `LLM_BASE_URL` 与 `LLM_MODEL`，但应重新跑测试并人工检查至少一批文章。
+
+## 部署到 GitHub Actions
+
+完整的逐步说明、验证点和故障排查见 [DEPLOY.md](./DEPLOY.md)。开源使用者推荐按下面方式部署：
+
+1. Fork 本仓库，或将代码推送到自己的 GitHub 仓库。
+2. 在 Actions Secrets 中配置文字模型密钥；图像、微信和 QQ 邮箱配置均可按需启用。
+3. 在 **Actions → AI Daily Digest → Run workflow** 手动运行一次。
+4. 确认日志、`output/<日期>/` 产物以及所配置的投递渠道无误。
+5. 保持 Actions 启用，之后主流程每天北京时间 07:30 自动运行。
+
+仓库包含三个工作流：
+
+| 工作流 | 触发方式 | 作用 |
+|---|---|---|
+| `CI` | push、pull request | Python 编译、Ruff 静态检查和测试 |
+| `AI Daily Digest` | 每天 07:30、手动 | 生成文章、提交产物、QQ/微信投递 |
+| `Biweekly Article Cleanup` | 每周一 03:20 检查、手动 | 按至少 14 天间隔执行过期清理 |
+
+> GitHub 原始文件地址只能直接用于公开仓库。私有仓库若要在微信中显示图片，请将 `output/` 同步到公开 HTTPS 存储，并配置 `PUBLIC_ASSET_ROOT_URL`。
+
+## 产物结构
+
+```text
+output/YYYY-MM-DD/
+├── digest.md                    # 当日选题总览
+├── digest_wechat.html           # 总览的公众号 HTML
+├── digest.json                  # 总览机器数据
+├── articles.json                # 标题测试、评分和文章索引
+├── article-01/
+│   ├── article.md               # 独立文章 Markdown
+│   ├── article_wechat.html      # 可复制到公众号编辑器的内联样式 HTML
+│   ├── article.json             # 调研卡、正文、终审、指标和配图状态
+│   └── images/
+│       ├── cover.jpg            # 可选封面
+│       └── illustration-*.jpg   # 0–5 张可选正文插图
+└── article-02/
+    └── ...
+```
+
+`article.json` 中的 `publishable` 是投递依据。`false` 表示文章未通过文字质量门禁，只能作为资料或人工编辑起点；`visuals.status` 记录配图是否成功，它本身不会决定文字文章能否发布。
+
+## 人工发布流程
+
+1. 在微信或 QQ 邮箱通读收到的文章，重点核对事实、数字、标题、来源和可能的版权风险。
+2. 打开 `output/<日期>/article-XX/article_wechat.html`。
+3. 浏览器全选复制，粘贴到公众号编辑器。
+4. 如果编辑器没有带入本地图片，按原位置上传 `images/` 中对应文件。
+5. 使用 `images/cover.jpg` 作为封面，完成预览并人工发布。
+
+## 双周清理策略
+
+清理任务采用白名单思路，避免把“定期清理”变成误删工具：
+
+| 范围 | 自动处理 | 明确不处理 |
+|---|---|---|
+| `output/` | 删除 14 天保留期之外、名称严格匹配 `YYYY-MM-DD` 的普通目录 | 非日期目录、文件、符号链接和异常路径 |
+| QQ 邮箱 | 删除收件箱和服务器“已发送”目录中，超过保留期且含 `X-AI-Daily: article` 专用邮件头的邮件 | 普通邮件、无项目标记的历史邮件 |
+| 微信 | Server酱正文按服务商规则自动过期 | 微信客户端里的消息卡片无法由本项目远程删除 |
+
+工作流每周检查一次，`.maintenance/cleanup-state.json` 保证实际清理间隔不少于 14 天；失败后可在下一周重试。首次启用或修改规则后，建议在 Actions 页面手动选择 `dry_run` 预览。
+
+本地预览命令：
+
+```bash
+python -m src.cleanup --dry-run --force
+```
+
+## 常用命令
+
+```bash
+# 默认：最近 36 小时、目标 2 篇、每篇约 2000 字
+python -m src.pipeline
+
+# 周末或节假日扩大信息窗口
+python -m src.pipeline --window-hours 72
+
+# 每日 1 篇，目标约 1600 字
+python -m src.pipeline --articles 1 --target-chars 1600
+
+# 回看 14 天进行跨天去重；设为 0 可关闭
+python -m src.pipeline --history-days 14
+
+# 查看全部参数
+python -m src.pipeline --help
+python -m src.cleanup --help
+```
+
+参数边界：`--articles` 为 1–3，`--target-chars` 为 1200–3500，`--window-hours` 必须大于 0。
+
+## 自定义
+
+- **信息源**：修改 `config/sources.yaml`，无需改代码。
+- **选题标准**：修改 `src/curator.py` 中的选题提示词和评分约束。
+- **写作风格与门禁**：修改 `src/writer.py` 中的调研、写作、终审提示词及 `article_metrics`。
+- **配图风格**：修改 `src/illustrator.py`，或设置 `IMAGE_QUALITY=low|medium|high`。
+- **公众号排版**：修改 `templates/article.html`；样式使用内联 CSS 以适配复制粘贴。
+- **发布时间**：同时调整 `.github/workflows/daily-digest.yml` 中的 `cron` 和 `timezone`。
+- **清理策略**：调整 `.github/workflows/biweekly-cleanup.yml` 的保留期和最小执行间隔。
+
+## 项目结构
+
+```text
+ai-daily/
+├── .github/workflows/            # CI、每日生产、双周清理
+├── config/sources.yaml           # RSS 信息源
+├── src/
+│   ├── fetcher.py                # RSS 并发抓取、重试和去重
+│   ├── curator.py                # 事件聚类、选题和模型请求
+│   ├── researcher.py             # 原文抓取与证据包
+│   ├── writer.py                 # 调研卡、写作、润色和质量门禁
+│   ├── illustrator.py            # 可选封面与插图
+│   ├── renderer.py               # Markdown、HTML、JSON 渲染
+│   ├── delivery.py               # Server酱微信投递
+│   ├── email_delivery.py         # QQ SMTP 图文邮件
+│   ├── cleanup.py                # 输出和 QQ 邮箱保留策略
+│   ├── history.py                # 跨天去重
+│   ├── safety.py                 # 文本、URL 和输出安全边界
+│   └── pipeline.py               # 主入口
+├── templates/                    # 公众号 HTML 模板
+├── tests/                        # 自动化测试
+├── .env.example                  # 本地配置模板
+├── DEPLOY.md                     # 部署与运维手册
+└── LICENSE                       # MIT License
+```
+
+## 开发与测试
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.lock
+
+python -m compileall -q src tests
+ruff check src tests
+python -m pytest
+```
+
+所有 push 和 pull request 都会执行同样的 CI 检查。提交涉及抓取、清理、安全净化或投递逻辑的改动时，请同时增加对应测试；外部服务测试应使用替身对象，不能依赖真实密钥。
+
+## 参与贡献
+
+Issue 和 pull request 都欢迎。适合优先参与的方向包括：
+
+- 增加稳定、可信的一手 AI 信息源；
+- 改进中文文章质量评估和可复现的评测样本；
+- 优化跨源事件聚类、事实冲突识别与引用覆盖；
+- 增加可选投递渠道或公开图片存储适配器；
+- 改进公众号排版、无障碍文本和图片说明；
+- 修复安全、隐私、性能或稳定性问题。
+
+建议贡献流程：
+
+1. 先搜索现有 [Issues](https://github.com/zhanghuaiwei/ai-daily/issues)，避免重复。
+2. Fork 仓库，从 `main` 创建语义清晰的分支。
+3. 保持改动聚焦，并为行为变化补充测试和文档。
+4. 在本地运行编译、Ruff 和测试。
+5. 提交 pull request，说明问题、方案、验证方式和潜在兼容性影响。
+
+提交新信息源时，请说明来源性质、RSS 地址、更新频率和选择理由。修改提示词时，最好附带修改前后的同一批输入对比，避免只凭单篇文章判断效果。
+
+## 安全与隐私
+
+- `.env` 已被 Git 忽略；所有线上凭据只能放 GitHub Actions Secrets。
+- 不要使用 QQ 登录密码，必须使用可撤销的 SMTP/IMAP 授权码。
+- `WECHAT_SENDKEY` 等同消息推送权限，泄露后应立即在服务商后台重置。
+- 微信投递会将最终 Markdown 发送给 Server酱；不接受这条数据路径时，不要配置 `WECHAT_SENDKEY`。
+- `output/` 会被工作流提交到仓库。公开仓库意味着文章正文、来源和生成图片也公开可见。
+- 图像生成会产生额外费用，建议在模型服务商后台设置预算和用量告警。
+- 本项目不能替代人工事实核验、版权审查或平台合规判断。
+
+如果发现可能导致凭据泄露、任意文件删除或不安全内容注入的漏洞，请不要在公开 Issue 中粘贴密钥、个人数据或可直接利用的细节；可先通过仓库维护者公开资料联系，并在修复后再披露。
 
 ## FAQ
 
-**Q: 为什么不全自动发布？**
-微信只对**已认证**订阅号开放草稿/发布 API，个人主体无法认证。第三方全自动工具有封号风险。最后人工 2 分钟顺便完成内容审核，对长期做号是好事。
+<details>
+<summary>为什么不直接全自动发布到公众号？</summary>
 
-**Q: 如何把文章推送到个人微信？**
-在 [Server酱获取 SendKey](https://sct.ftqq.com/docs/getting-started/sendkey/)，把它保存为 GitHub Secret `WECHAT_SENDKEY`。SendKey 等同推送权限，不要提交到仓库或发到聊天中。
-微信投递会把最终 Markdown 正文发送给 Server酱这一第三方服务；如果不接受该数据路径，不配置 SendKey 即可，文章仍会保存在仓库。
+项目有意保留人工终审步骤，不调用公众号草稿或发布接口，也不模拟登录。这样可以在公开发布前检查事实、版权、排版和内容风险。
+</details>
 
-**Q: 如何推送到 QQ 邮箱？**
-登录 [QQ 邮箱](https://mail.qq.com) 后，在设置的账户服务中开启 IMAP/SMTP 并生成授权码；把邮箱地址保存为 Secret `QQ_EMAIL_USER`，授权码保存为 `QQ_EMAIL_AUTH_CODE`。项目使用 `smtp.qq.com:465` 加密发送，并通过 `imap.qq.com:993` 清理过期项目邮件。授权码只放 Secrets，不要填写 QQ 登录密码。
+<details>
+<summary>没有文字模型密钥可以运行吗？</summary>
 
-**Q: 双周清理会删掉什么？**
-仅删除保留期之外的 `output/YYYY-MM-DD/` 目录，以及收件箱/已发送中带 `X-AI-Daily: article` 专用邮件头的文章。其他输出文件、普通邮件和无法识别的目录都不会删除。工作流每周检查一次，由状态文件保证实际执行间隔不少于 14 天，也支持手动 `dry-run` 预览。
+可以运行 `--dry-run` 检查抓取、选题兜底、目录和模板，但结果始终不可发布。正式文章需要配置兼容接口的 `LLM_API_KEY`。
+</details>
 
-**Q: 为什么不能自动删除微信里的旧消息？**
-Server酱正文会在服务端保存 1-3 天后自动过期，没有远程撤回微信客户端消息的接口。清理 `output/` 后旧消息中的仓库图片也会失效；微信聊天列表里的卡片如需删除，只能在微信客户端手动操作。
+<details>
+<summary>为什么当天没有收到正式文章？</summary>
 
-**Q: 为什么当天没有收到正式文章？**
-系统宁可少发也不凑数。没有话题通过事实、篇幅、中文比例、引用和终审门禁时，只生成待审核稿，并发送人工检查提醒。配图失败不会触发这一门禁。
+当天可能没有话题通过事实、篇幅、中文比例、引用和模型终审门禁。系统会保留待审核资料，但不会为了凑数量把它当作成品投递。配图失败不会导致文字文章被拦截。
+</details>
 
-**Q: 为什么文章没有配图？**
-配图是增强项，不影响文字文章发布。检查 `IMAGE_API_KEY`、账户余额、图像模型权限和 `article.json` 中的 `visuals.error`。部分 OpenAI 组织可能需要先完成图像模型的组织验证。
+<details>
+<summary>为什么文章没有配图？</summary>
 
-**Q: 微信里为什么看不到图？**
-默认公网地址来自提交后的 GitHub 文件，因此仓库需要公开。私有仓库需把 `output/` 同步到可公开访问的 HTTPS 存储，并配置 Secret `PUBLIC_ASSET_ROOT_URL`；其目录下应能按 `日期/article-XX/images/文件名` 访问图片。
+配图是增强项。检查 `IMAGE_API_KEY`、账户余额、图像模型权限以及 `article.json` 中的 `visuals.status` 和 `visuals.error`。没有有价值的可视化内容时，模型也可以规划 0 张正文插图。
+</details>
 
-**Q: 某个 RSS 源一直失败？**
-日志搜 `[FAIL]`。公共 RSSHub 实例不稳定是常态，方案见上面「自建 RSSHub」。
+<details>
+<summary>微信里为什么看不到图片？</summary>
 
-**Q: 周末/节假日条目太少？**
-`python3 -m src.pipeline --window-hours 72`，或 workflow 加条件传参。
+默认图片地址来自提交后的 GitHub 文件，仓库必须公开。私有仓库需要把 `output/` 同步到公开 HTTPS 存储，并设置 `PUBLIC_ASSET_ROOT_URL`；路径结构应为 `日期/article-XX/images/文件名`。
+</details>
 
-**Q: 想改成每周精选？**
-cron 改 `0 1 * * 1`（每周一北京 09:00），`--window-hours` 调到 168。
+<details>
+<summary>如何配置 QQ 邮箱？</summary>
 
-## 贡献
+登录 [QQ 邮箱](https://mail.qq.com)，开启 IMAP/SMTP 并生成授权码。将邮箱地址保存为 `QQ_EMAIL_USER`，授权码保存为 `QQ_EMAIL_AUTH_CODE`。项目通过 `smtp.qq.com:465` 加密发送，并通过 `imap.qq.com:993` 清理带专用标记的过期项目邮件。
+</details>
 
-欢迎 issue / PR：
-- 加新的 RSS 源（直接改 `config/sources.yaml`）
-- 改进 prompt（`src/curator.py`）
-- 排版主题（`templates/wechat.html`）
-- 修复 bug
+<details>
+<summary>某个 RSS 源一直失败怎么办？</summary>
+
+先在日志中搜索 `[FAIL]`。单个来源失败会自动隔离，不影响其他来源；RSSHub 公共实例不稳定时，可以替换实例或自行部署 RSSHub。
+</details>
 
 ## License
 
-[MIT](./LICENSE) © 2026 huaiwei
+本项目使用 [MIT License](./LICENSE)，允许使用、复制、修改、分发和商用，但须保留原许可证和版权声明。
 
-随意使用、修改、分发，包括商用。如果对你有帮助，给个 star 就行 ⭐
+如果这个项目对你有帮助，欢迎点一个 Star，也欢迎用 Issue 或 PR 分享你的信息源、评测方法和改进方案。
