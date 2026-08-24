@@ -1,11 +1,15 @@
 name: AI Daily Digest
 
-# 每天北京时间 07:30 自动运行（GitHub Actions 用 UTC，07:30 CST = 前一天 23:30 UTC）
-# TODO(学习者): 想改时间就调 cron 表达式，注意是 UTC 时区，减 8 小时换算
+# 每天北京时间 07:30 自动运行；显式时区避免日期跨 UTC 日界线。
 on:
   schedule:
-    - cron: '30 23 * * *'
+    - cron: '30 7 * * *'
+      timezone: 'Asia/Shanghai'
   workflow_dispatch: {}   # 支持在 Actions 页面手动触发，调试必备
+
+concurrency:
+  group: ai-daily-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write          # 允许把每日产物 commit 回仓库
@@ -13,15 +17,18 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Install deps
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.lock
 
       - name: Run pipeline
         env:
@@ -29,12 +36,47 @@ jobs:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
-        run: python -m src.pipeline
+          # 配图独立使用图像接口；默认模型由代码设为 gpt-image-2。
+          IMAGE_API_KEY: ${{ secrets.IMAGE_API_KEY }}
+          IMAGE_BASE_URL: ${{ secrets.IMAGE_BASE_URL }}
+          IMAGE_MODEL: ${{ secrets.IMAGE_MODEL }}
+        run: |
+          if [[ -z "${IMAGE_API_KEY}" ]]; then
+            echo "IMAGE_API_KEY 未配置：继续生成并推送文字版文章"
+          fi
+          python -m src.pipeline --articles 2 --target-chars 2000
 
       - name: Commit daily output
         run: |
           git config user.name  "ai-daily-bot"
           git config user.email "actions@github.com"
           git add output/
-          git commit -m "daily: $(date -u +%F)" || echo "no changes"
-          git push
+          if git diff --cached --quiet; then
+            echo "no changes"
+            exit 0
+          fi
+          edition_date=$(TZ=Asia/Shanghai date +%F)
+          git commit -m "daily: ${edition_date}"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      # 有图片时先提交再投递公网地址；没有图片时正常投递文字版。
+      - name: Deliver articles to WeChat
+        env:
+          WECHAT_SENDKEY: ${{ secrets.WECHAT_SENDKEY }}
+          PUBLIC_ASSET_ROOT_URL: ${{ secrets.PUBLIC_ASSET_ROOT_URL }}
+        run: |
+          if [[ -z "${WECHAT_SENDKEY}" ]]; then
+            echo "WECHAT_SENDKEY 未配置：跳过微信推送"
+            exit 0
+          fi
+          edition_date=$(TZ=Asia/Shanghai date +%F)
+          if [[ -n "${PUBLIC_ASSET_ROOT_URL}" ]]; then
+            asset_base_url="${PUBLIC_ASSET_ROOT_URL%/}/${edition_date}"
+          else
+            revision=$(git rev-parse HEAD)
+            asset_base_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${revision}/output/${edition_date}"
+          fi
+          python -m src.delivery \
+            --day-dir "output/${edition_date}" \
+            --asset-base-url "${asset_base_url}"
