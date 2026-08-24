@@ -1,6 +1,6 @@
 # AI 前沿公众号文章生产线 · ai-daily
 
-> 每日自动发现 AI 前沿话题，默认生成 1-2 篇、最多 3 篇独立公众号文章；完成调研、写作、扩写润色、标题测试、去 AI 味、封面/插图生成和质量自检后推送到个人微信。
+> 每日自动发现 AI 前沿话题，默认生成 1-2 篇、最多 3 篇独立公众号文章；完成调研、写作、扩写润色、标题测试、去 AI 味、封面/插图生成和质量自检后推送到个人微信与 QQ 邮箱。
 
 ```
 RSS 信息源（11 源，英文一手 + 聚合 + 中文）
@@ -18,7 +18,8 @@ RSS 信息源（11 源，英文一手 + 聚合 + 中文）
    配图编辑 ─── 尝试生成 1 张宽幅封面 + 0-5 张章节插图，失败则降级为文字版
         │
         ├──── article.* + images/（一题一文、图文排版）
-        └──── 提交图片后由 Server酱推送到个人微信
+        ├──── 提交图片后由 Server酱推送到个人微信
+        └──── QQ SMTP 发送内嵌图文邮件
                      │
                      ▼
         人工：微信审稿 → 打开 HTML → 粘贴进个人公众号 → 发布
@@ -39,6 +40,7 @@ RSS 信息源（11 源，英文一手 + 聚合 + 中文）
 - **配图柔性降级**：计划中的图片成功时输出图文版；不需要插图、密钥缺失或接口异常时继续输出并推送文字版，同时在 `article.json` 记录状态
 - **跨天去重**：同时使用历史链接和历史话题标题，避免同一事件换链接重复发布
 - **个人微信图文投递**：图片先提交到仓库，再把公网图片地址写入 Markdown，通过 Server酱 Turbo 推送到个人微信
+- **QQ 邮箱图文投递**：通过 QQ SMTP 加密连接发送完整文章，图片以内嵌附件呈现，不依赖公网图片地址
 - **独立产物**：每篇文章都有公众号 HTML、Markdown、JSON；每日另有选题总览和标题测试索引
 - **鲁棒设计**：RSS 并发抓取 + 超时重试、单源失败隔离、LLM 网络/格式异常自动降级、北京时间固定、Actions 并发保护
 - **内容安全**：RSS 视为不可信数据，模型输出只接受真实候选链接，HTML/Markdown 统一净化且仅允许 HTTP(S) 链接
@@ -51,6 +53,7 @@ RSS 信息源（11 源，英文一手 + 聚合 + 中文）
 - 任意 OpenAI 兼容 LLM API（推荐中文写作能力较好的模型）
 - 支持图像生成的 OpenAI API key（默认使用 `gpt-image-2`；与文字模型密钥分开配置）
 - Server酱 Turbo SendKey（用于个人微信推送，可先不配置）
+- QQ 邮箱 SMTP 授权码（用于邮件推送，可先不配置；不能使用 QQ 登录密码）
 
 ## 快速开始
 
@@ -79,7 +82,7 @@ python3 -m src.pipeline --dry-run
 详细分步见 [DEPLOY.md](./DEPLOY.md)（含验证点和失败排查表），核心动作：
 
 1. **推送仓库**：`git remote add origin ... && git push -u origin main`
-2. **配置文字、图像和微信推送 Secrets**（Settings → Secrets → Actions）：
+2. **配置文字、图像和投递 Secrets**（Settings → Secrets → Actions）：
    - `LLM_API_KEY` = 你的 DeepSeek key
    - `LLM_BASE_URL` = `https://api.deepseek.com/v1`
    - `LLM_MODEL` = `deepseek-v4-pro`
@@ -87,6 +90,9 @@ python3 -m src.pipeline --dry-run
    - `IMAGE_BASE_URL` = `https://api.openai.com/v1`（可省略）
    - `IMAGE_MODEL` = `gpt-image-2`（可省略）
    - `WECHAT_SENDKEY` = 你的 Server酱 Turbo SendKey
+   - `QQ_EMAIL_USER` = 作为发件人使用的完整 QQ 邮箱地址
+   - `QQ_EMAIL_AUTH_CODE` = QQ 邮箱 SMTP 授权码，不是登录密码
+   - `EMAIL_TO` = 收件邮箱（可省略，默认发给 `QQ_EMAIL_USER` 自己）
 3. **手动触发验证**：Actions → AI Daily Digest → Run workflow，看日志全绿
 4. **之后每天自动跑**：workflow 使用 `Asia/Shanghai` 时区，已配置北京时间 07:30
 
@@ -94,7 +100,7 @@ python3 -m src.pipeline --dry-run
 
 ## 每日发布流程
 
-1. 通过文字质量门禁的文章会分别推送到个人微信；配图成功时推送图文版，否则推送文字版。
+1. 通过文字质量门禁的文章会分别推送到个人微信和 QQ 邮箱；配图成功时推送图文版，否则推送文字版。
 2. 在微信中通读文章，重点核对事实、数字、标题和来源。
 3. 打开仓库 `output/<北京时间日期>/article-XX/article_wechat.html`。
 4. 浏览器打开 → 全选复制 → 粘贴到个人公众号编辑器；若编辑器没有带入本地图片，按原位置上传 `images/` 中对应文件。
@@ -118,6 +124,7 @@ ai-daily/
 │   ├── writer.py                       # 调研卡、写作、润色与质量门禁
 │   ├── illustrator.py                  # 可选封面/正文图生成、裁切与状态记录
 │   ├── delivery.py                     # Server酱个人微信投递
+│   ├── email_delivery.py               # QQ SMTP 图文邮件投递
 │   ├── safety.py                       # 文本与 URL 安全边界
 │   ├── renderer.py                     # 总览与独立文章渲染
 │   └── pipeline.py                     # 入口
@@ -168,6 +175,9 @@ python3 -m pytest
 **Q: 如何把文章推送到个人微信？**
 在 [Server酱获取 SendKey](https://sct.ftqq.com/docs/getting-started/sendkey/)，把它保存为 GitHub Secret `WECHAT_SENDKEY`。SendKey 等同推送权限，不要提交到仓库或发到聊天中。
 微信投递会把最终 Markdown 正文发送给 Server酱这一第三方服务；如果不接受该数据路径，不配置 SendKey 即可，文章仍会保存在仓库。
+
+**Q: 如何推送到 QQ 邮箱？**
+登录 [QQ 邮箱](https://mail.qq.com) 后，在设置的账户服务中开启 SMTP 并生成授权码；把邮箱地址保存为 Secret `QQ_EMAIL_USER`，授权码保存为 `QQ_EMAIL_AUTH_CODE`。项目使用 `smtp.qq.com:465` 加密发送，默认发给该邮箱自己。授权码只放 Secrets，不要填写 QQ 登录密码。
 
 **Q: 为什么当天没有收到正式文章？**
 系统宁可少发也不凑数。没有话题通过事实、篇幅、中文比例、引用和终审门禁时，只生成待审核稿，并发送人工检查提醒。配图失败不会触发这一门禁。

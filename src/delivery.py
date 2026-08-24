@@ -119,15 +119,22 @@ def load_day_article_paths(day_dir: Path) -> list[dict[str, object]]:
         if not isinstance(item, dict):
             continue
         raw_paths = item.get("paths", {})
-        relative_markdown = raw_paths.get("markdown") if isinstance(raw_paths, dict) else None
-        if not isinstance(relative_markdown, str):
+        if not isinstance(raw_paths, dict):
             continue
-        markdown_path = (day_dir / relative_markdown).resolve()
-        if day_root not in markdown_path.parents or not markdown_path.is_file():
-            raise DeliveryError("文章索引包含无效 Markdown 路径")
+        resolved_paths = {}
+        for key in ("markdown", "wechat_html"):
+            relative_path = raw_paths.get(key)
+            if not isinstance(relative_path, str):
+                raise DeliveryError("文章索引缺少投递文件路径")
+            resolved_path = (day_dir / relative_path).resolve()
+            if day_root not in resolved_path.parents or not resolved_path.is_file():
+                raise DeliveryError("文章索引包含无效投递文件路径")
+            resolved_paths[key] = resolved_path
+        markdown_path = resolved_paths["markdown"]
         relative_dir = markdown_path.parent.name
         paths.append({
             "markdown": markdown_path,
+            "wechat_html": resolved_paths["wechat_html"],
             "publishable": bool(item.get("publishable")),
             "title": clean_plain_text(item.get("title"), 80),
             "relative_dir": relative_dir,

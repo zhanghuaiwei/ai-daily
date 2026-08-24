@@ -1,6 +1,6 @@
 # 部署与每日发布手册
 
-> 项目已完成选题、调研、单题写作、扩写润色、封面/插图生成、质量门禁、渲染和个人微信投递。
+> 项目已完成选题、调研、单题写作、扩写润色、封面/插图生成、质量门禁、渲染、个人微信和 QQ 邮箱投递。
 > 照下面做，全程约 10 分钟；之后每天由 GitHub Actions 自动运行。
 
 ---
@@ -36,11 +36,15 @@ git push -u origin main
 | `IMAGE_BASE_URL` | `https://api.openai.com/v1`（可省略） |
 | `IMAGE_MODEL` | `gpt-image-2`（可省略） |
 | `WECHAT_SENDKEY` | Server酱 Turbo 的 SendKey（用于个人微信推送） |
+| `QQ_EMAIL_USER` | 完整 QQ 邮箱地址（发件账号） |
+| `QQ_EMAIL_AUTH_CODE` | QQ 邮箱 SMTP 授权码，不能填写登录密码 |
+| `EMAIL_TO` | 收件邮箱（可省略，默认与发件账号相同） |
 
 > DeepSeek key 在 [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) 创建。
 > 想换回 OpenAI：BASE_URL 填 `https://api.openai.com/v1`、MODEL 填 `gpt-4o-mini`，其余不动。
 > 配图默认使用 GPT Image 2。若接口提示模型权限问题，请检查余额，并按[图像生成官方说明](https://developers.openai.com/api/docs/guides/image-generation)完成必要的组织验证。
 > 微信推送密钥在 [Server酱 SendKey 页面](https://sct.ftqq.com/docs/getting-started/sendkey/) 获取。密钥只放 GitHub Secrets，不要写进代码。
+> QQ 邮箱需先在邮箱设置中开启 SMTP 并生成授权码；项目固定使用 `smtp.qq.com:465` SSL 加密连接。
 
 默认微信图片地址来自 GitHub，因此仓库应为公开仓库。私有仓库必须把 `output/` 同步到公开 HTTPS 存储，
 再增加 Secret `PUBLIC_ASSET_ROOT_URL`（例如 `https://cdn.example.com/ai-daily/output`）。
@@ -51,8 +55,9 @@ git push -u origin main
 2. 等运行出现（黄色转圈 → 绿色对勾），点进去看日志：
    - `Run pipeline` 应出现抓取、独立选题、原文调研、文章质量状态和配图状态
    - `Commit daily output` 步骤应有 `daily: <日期>` 提交
-   - `Deliver illustrated articles to WeChat` 应在提交之后推送图文文章
-3. 个人微信收到文章；仓库 `output/<北京时间日期>/article-01/` 出现 HTML、Markdown、JSON 和 `images/` = 部署成功
+   - `Deliver articles to QQ Mail` 应显示邮件推送数量
+   - `Deliver articles to WeChat` 应在提交之后推送图文文章
+3. 个人微信与 QQ 邮箱收到文章；仓库 `output/<北京时间日期>/article-01/` 出现 HTML、Markdown、JSON 和 `images/` = 部署成功
 
 **失败排查**：
 
@@ -63,6 +68,8 @@ git push -u origin main
 | `IMAGE_API_KEY 未配置` | 正常生成并推送文字版；需要图文版时添加图像密钥后重跑 |
 | 图像生成失败 | 自动降级为文字版；查看 `article.json` 的 `visuals.error`，检查图像模型权限、余额、超时和模型名 |
 | `WECHAT_SENDKEY 未配置` | 文章仍会生成，但不会推送；按阶段二配置 Secret 后重跑 |
+| QQ 邮箱账号或授权码未配置 | 文章和微信投递不受影响；配置 `QQ_EMAIL_USER` 与 `QQ_EMAIL_AUTH_CODE` 后重跑 |
+| QQ 邮箱认证失败 | 确认已开启 SMTP，Secret 中填写的是授权码而非登录密码；必要时重新生成授权码 |
 | 没有文章通过质量门禁 | 微信收到人工检查提醒；这只由文字与事实质量决定，与配图是否成功无关 |
 | 微信正文显示裂图 | 公开仓库检查图片 URL；私有仓库配置能公开访问图片的 `PUBLIC_ASSET_ROOT_URL` |
 | 个别源 `[FAIL]` | 正常（源偶尔抽风会自动跳过）；全失败才需要查网络 |
@@ -71,7 +78,7 @@ git push -u origin main
 
 ## 阶段四：每日发布到公众号（每天 2-5 分钟）
 
-1. 在个人微信查看通过文字质量门禁的独立文章；有图时为图文版，无图时为文字版。
+1. 在个人微信或 QQ 邮箱查看通过文字质量门禁的独立文章；有图时为图文版，无图时为文字版。
 2. 打开仓库 `output/<北京时间日期>/article-XX/article_wechat.html` → 下载或本机打开。
 3. 浏览器打开 → `Cmd/Ctrl+A` 全选 → `Cmd/Ctrl+C`。
 4. [mp.weixin.qq.com](https://mp.weixin.qq.com) → 新建图文 → 正文粘贴；若本地图片未随复制带入，按文章位置上传 `images/illustration-01.jpg` 和 `illustration-02.jpg`。
@@ -99,6 +106,7 @@ git push -u origin main
 - `.env`（本地调试用）已被 gitignore，**永远不要**把 key 写进代码或提交记录
 - 对话/剪贴板里出现过的 key，用完建议去后台 rotate（重新生成）
 - `WECHAT_SENDKEY` 等同于给个人微信发送消息的权限，同样只能放 Secrets
+- `QQ_EMAIL_AUTH_CODE` 等同于第三方客户端发信权限，只能放 Secrets；泄露后立即在 QQ 邮箱撤销
 - `IMAGE_API_KEY` 会产生图像生成费用，应设置账户预算和用量告警
 - 微信投递会经过 Server酱第三方服务；不配置 SendKey 时只生成本地/仓库产物
 - RSS 和 LLM 输出都按不可信内容处理；不要移除 URL 白名单、输出净化或人工发布前审核

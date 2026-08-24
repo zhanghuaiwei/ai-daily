@@ -47,6 +47,7 @@ jobs:
           python -m src.pipeline --articles 2 --target-chars 2000
 
       - name: Commit daily output
+        id: commit_output
         run: |
           git config user.name  "ai-daily-bot"
           git config user.email "actions@github.com"
@@ -60,8 +61,24 @@ jobs:
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
+      # 邮件直接内嵌本地文章图片，不依赖仓库公开地址。
+      - name: Deliver articles to QQ Mail
+        if: ${{ always() && steps.commit_output.outcome == 'success' }}
+        env:
+          QQ_EMAIL_USER: ${{ secrets.QQ_EMAIL_USER }}
+          QQ_EMAIL_AUTH_CODE: ${{ secrets.QQ_EMAIL_AUTH_CODE }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: |
+          if [[ -z "${QQ_EMAIL_USER}" || -z "${QQ_EMAIL_AUTH_CODE}" ]]; then
+            echo "QQ 邮箱账号或 SMTP 授权码未配置：跳过邮件推送"
+            exit 0
+          fi
+          edition_date=$(TZ=Asia/Shanghai date +%F)
+          python -m src.email_delivery --day-dir "output/${edition_date}"
+
       # 有图片时先提交再投递公网地址；没有图片时正常投递文字版。
       - name: Deliver articles to WeChat
+        if: ${{ always() && steps.commit_output.outcome == 'success' }}
         env:
           WECHAT_SENDKEY: ${{ secrets.WECHAT_SENDKEY }}
           PUBLIC_ASSET_ROOT_URL: ${{ secrets.PUBLIC_ASSET_ROOT_URL }}
