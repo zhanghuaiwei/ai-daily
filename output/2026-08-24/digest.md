@@ -4,53 +4,53 @@
 
 ---
 
-## 1. not much happened today
+## 1. PrimeAgentOrchestrator: Memory-Primed Agent Spawning for Personal AI Infrastructure
 
-> OxAlpha编程/智能体表现强劲，疑为智谱GLM系；DeepSeek发布多模态API。
+> 提出 PAO 系统，在启动 Claude Code 编程智能体时预加载来自个人数据库的相关记忆，避免每次从空上下文开始。
 
-**为什么值得关注：** 同时覆盖神秘模型OxAlpha和DeepSeek新多模态API，是当天模型动态中信息量最大的一条。
+**为什么值得关注：** 直接解决编程智能体丢失会话记忆的痛点，对个人 AI 基础设施和开发者工作流有实用价值。
 
-来源：AI News (smol.ai) · [原文链接](https://news.smol.ai/issues/26-08-21-not-much/)
-
----
-
-## 2. Nexus: Depth-Adaptive KV-Cache Splicing and Retrieval-Decoupled Tool Routing for Agentic LLMs on Unified Memory
-
-> Nexus解耦工具路由与schema预填充，用INT8缓冲+KV拼接降低agent TTFT。
-
-**为什么值得关注：** 直击MCP工具注册增长导致TTFT爆炸的问题，对构建生产级agent的开发者很有参考价值。
-
-来源：arXiv cs.AI · [原文链接](https://arxiv.org/abs/2608.20397)
+来源：arXiv cs.AI · [原文链接](https://arxiv.org/abs/2608.20342)
 
 ---
 
-## 3. ForeTime-VLA: Causal Future-Token Distillation from a World Action Model for Conveyor-Belt Manipulation
+## 2. ForeTime-VLA: Causal Future-Token Distillation from a World Action Model for Conveyor-Belt Manipulation
 
-> ForeTime-VLA将世界动作模型未来表征蒸馏到pi0.5策略，用于传送带动态操作。
+> 提出 ForeTime-VLA，将世界动作模型的未来感知表示蒸馏到 pi0.5 VLA 策略中，用于传送带移动物体的操作预测。
 
-**为什么值得关注：** 具身智能/VLA方向的前沿工作，解决动态对象操作中预测接触事件的成本问题。
+**为什么值得关注：** 将世界模型与 VLA 结合处理动态操作任务，是具身智能领域模型级创新，兼顾推理成本和预测能力。
 
 来源：arXiv cs.AI · [原文链接](https://arxiv.org/abs/2608.20735)
 
 ---
 
-## 4. Nvidia just showed that the harness, not the AI model, is now the real hero
+## 3. I gave Qwen 3.8 27B a reverse-engineering job and it finished in 30 minutes
 
-> Nvidia研究显示，微调harness后即使模型能力一般，AI agent也能表现稳定不跑偏。
+> 用户实测 Qwen 3.8 27B 执行逆向工程任务，30 分钟完成，效果媲美前沿模型。
 
-**为什么值得关注：** 给AI Coding/agent工程一个明确信号：与其追新模型，不如把上下文与工具编排做扎实。
+**为什么值得关注：** 开源模型在真实逆向工程/编程任务中展现出与前沿模型竞争的能力，对 AI Coding 工具选择有参考价值。
 
-来源：TechCrunch AI · [原文链接](https://techcrunch.com/2026/08/21/nvidia-just-showed-that-the-harness-not-the-ai-model-is-now-the-real-hero/)
+来源：Hacker News 首页 · [原文链接](https://www.xda-developers.com/qwen-3-8-27b-reverse-engineering-job-frontier-model/)
 
 ---
 
-## 5. I gave Qwen 3.8 27B a reverse-engineering job and it finished in 30 minutes
+## 4. Inherent, founded by DeepMind alumni, says its AI ‘teammate’ just outperformed Anthropic and OpenAI at replicating research
 
-> Qwen3.8 27B在逆向工程任务中30分钟完成，性能接近前沿模型，开源编程能力被实证。
+> DeepMind 校友创立的 Inherent 发布 AI 代理 Faraday，在复现科研论文任务上宣称超越 Anthropic 和 OpenAI。
 
-**为什么值得关注：** 为开发者选型开源代码模型提供实例参考，说明中小尺寸模型也能承担复杂工程任务。
+**为什么值得关注：** 科研自动化代理的新产品发布，直接对标头部前沿模型，可能影响研究/开发工作流。
 
-来源：Hacker News 首页 · [原文链接](https://www.xda-developers.com/qwen-3-8-27b-reverse-engineering-job-frontier-model/)
+来源：TechCrunch AI · [原文链接](https://techcrunch.com/2026/08/22/inherent-founded-by-deepmind-alumni-says-its-ai-teammate-just-outperformed-anthropic-and-openai-at-replicating-research/)
+
+---
+
+## 5. NanoGPT Speedrun Frontier
+
+> Prime Intellect 发布 NanoGPT 训练速度挑战，展示高效训练方法与极限，吸引社区参与。
+
+**为什么值得关注：** 关注训练效率与成本，为开发者提供高性能训练基准和可复现方案，技术社区讨论度高。
+
+来源：Hacker News 首页 · [原文链接](https://www.primeintellect.ai/research/nanogpt-speedrun)
 
 ---
 
