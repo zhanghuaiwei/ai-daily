@@ -21,6 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          # workflow 重跑仍会沿用旧的触发提交；显式检出分支最新版本，
+          # 避免与已经提交的同日文章发生 add/add 冲突。
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - uses: actions/setup-python@v6

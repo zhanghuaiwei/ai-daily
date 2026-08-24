@@ -75,7 +75,7 @@ git push -u origin main
 | 没有文章通过质量门禁 | 微信收到人工检查提醒；这只由文字与事实质量决定，与配图是否成功无关 |
 | 微信正文显示裂图 | 公开仓库检查图片 URL；私有仓库配置能公开访问图片的 `PUBLIC_ASSET_ROOT_URL` |
 | 个别源 `[FAIL]` | 正常（源偶尔抽风会自动跳过）；全失败才需要查网络 |
-| `Commit daily output` push 冲突 | workflow 会先 rebase；仍冲突时保留日志并手动重跑，不会静默忽略 |
+| `Commit daily output` push 冲突 | workflow 会检出分支最新版本并串行执行日报任务，再在推送前 rebase；如仍冲突，检查是否有人同时修改了同日期的 `output/` 文件 |
 | 定时任务不触发 | GitHub cron 常态性延迟几分钟到几小时，耐心等或手动 Run |
 
 ## 阶段四：每日发布到公众号（每天 2-5 分钟）
