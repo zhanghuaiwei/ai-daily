@@ -1,6 +1,42 @@
+# ===== Python =====
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+*.egg
+
+# ===== 虚拟环境 =====
 .venv/
-.DS_Store
+venv/
+env/
+ENV/
+
+# ===== 环境变量与密钥（绝不入库）=====
 .env
+.env.local
+.env.*.local
+*.pem
+secrets.json
+
+# ===== IDE / 编辑器 =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===== 日志与临时产物 =====
+*.log
+logs/
 output-dryrun/
+
+# ===== 测试与覆盖率 =====
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
