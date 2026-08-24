@@ -4,23 +4,23 @@
 
 ---
 
-## 1\. AI 编码代理的下一步,卡在规范和记忆
+## 1\. Kids outlearn AI—and we still don’t know why
 
-> 两篇 arXiv 预印本分别从输入规范和会话记忆入手,讨论编码代理如何从“能写代码”走向“稳定交付”。SDAD 提出规范驱动代理开发,把机器可读规范视为后续执行的前提;PAO 则给 Claude Code 新实例预加载个人数据库中的相关记忆。文章梳理两条路线的机制、可操作含义与证据边界。
+> 自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。
 
-**为什么值得关注：** 两篇 arXiv 同日新论文直接涉及 AI 原生 SDLC,聚焦编码代理的 specification 和 memory 两个核心瓶颈,技术含量高且对开发者有实际操作启发;来源为一手论文。
+**为什么值得关注：** 兜底选题:按来源优先级和发布时间选出
 
-来源：arXiv cs\.AI · [原文链接](<https://arxiv.org/abs/2608.20341>)
+来源：MIT Tech Review AI · [原文链接](<https://www.technologyreview.com/2026/08/24/1141740/kids-machines-language-learning/>)
 
 ---
 
-## 2\. 单轮拒识正在被绕开:语义伪装与多轮越狱的两项新研究
+## 2\. Who’s behind the new ‘stealth model’ Ox Alpha?
 
-> 两篇 arXiv 论文从两个方向逼近大模型安全盲区:一篇发现把有害意图藏进良性叙事,可以绕过主要在最后阶段触发的拒识,并提出潜在意图验证思路;另一篇把多轮越狱形式化,给出带认证边界的安全下界。文章解释核心概念、局限与可能的产品启示。
+> 自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。
 
-**为什么值得关注：** 两篇论文都针对当前 LLM 安全的关键缺陷——表层拒识与单轮假设,提出可验证或有保证的防御思路,技术含量高;安全话题具备泛读者关注度,且均为一手 arXiv 来源。
+**为什么值得关注：** 兜底选题:按来源优先级和发布时间选出
 
-来源：arXiv cs\.AI · [原文链接](<https://arxiv.org/abs/2608.20378>)
+来源：TechCrunch AI · [原文链接](<https://techcrunch.com/2026/08/23/whos-behind-the-new-stealth-model-ox-alpha/>)
 
 ---
 

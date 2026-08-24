@@ -1,407 +1,50 @@
 {
   "topic": {
-    "working_title": "AI 编码代理的下一跳:规范驱动开发与记忆预加载",
-    "angle": "从“模型能写代码”进入“如何让代理自主交付高质量软件”的角度,解释为什么规范质量成为执行燃料,以及怎样把过往经验预载进编码代理(如 Claude Code)。",
-    "reason": "两篇 arXiv 同日新论文直接涉及 AI 原生 SDLC,聚焦编码代理的 specification 和 memory 两个核心瓶颈,技术含量高且对开发者有实际操作启发;来源为一手论文。",
+    "working_title": "Kids outlearn AI—and we still don’t know why",
+    "angle": "从技术原理、实际价值和局限三个方面解释这一进展",
+    "reason": "兜底选题：按来源优先级和发布时间选出",
     "sources": [
       {
-        "title": "SDAD: Spec-Driven Agentic Development for the AI-Native SDLC",
-        "link": "https://arxiv.org/abs/2608.20341",
-        "summary": "arXiv:2608.20341v1 Announce Type: new Abstract: Frontier coding agents backed by large language models with context windows from hundreds of thousands to millions of tokens are restructuring the Software Development Life Cycle (SDLC). Rich context handling and multi-step reasoning now allow substantial Functional Requirement Documents (FRDs) and repository context to be ingested in a single workflow, making specification quality the execution fuel for autonomous delivery. This report formalises ",
-        "source": "arXiv cs.AI",
-        "category": "论文",
-        "priority": 3,
-        "published_ts": 1787544000
-      },
-      {
-        "title": "PrimeAgentOrchestrator: Memory-Primed Agent Spawning for Personal AI Infrastructure",
-        "link": "https://arxiv.org/abs/2608.20342",
-        "summary": "arXiv:2608.20342v1 Announce Type: new Abstract: Large language model (LLM) coding agents start each session with an empty context window, discarding accumulated knowledge from prior work. We present PrimeAgentOrchestrator (PAO), a system that spawns new instances of Claude Code -- Anthropic's terminal-based coding agent -- pre-loaded with relevant memories compiled from the user's existing personal databases. At spawn time, PAO queries two independently-operated memory backends in parallel (a Po",
-        "source": "arXiv cs.AI",
-        "category": "论文",
-        "priority": 3,
-        "published_ts": 1787544000
+        "title": "Kids outlearn AI—and we still don’t know why",
+        "link": "https://www.technologyreview.com/2026/08/24/1141740/kids-machines-language-learning/",
+        "summary": "People have been talking to each other for at least 100,000 years, as best we can tell. And in all that time, there has been only one thing in the world that could learn a human language to perfect fluency: a human child. Now there are two. Four short years after the release of ChatGPT,...",
+        "source": "MIT Tech Review AI",
+        "category": "科技媒体",
+        "priority": 2,
+        "published_ts": 1787562000
       }
     ],
-    "ai_selected": true,
+    "ai_selected": false,
     "evidence": [
       {
-        "title": "SDAD: Spec-Driven Agentic Development for the AI-Native SDLC",
-        "source": "arXiv cs.AI",
-        "category": "论文",
-        "url": "https://arxiv.org/abs/2608.20341",
-        "published_at": "2026-08-24T04:00:00+00:00",
+        "title": "Kids outlearn AI—and we still don’t know why",
+        "source": "MIT Tech Review AI",
+        "category": "科技媒体",
+        "url": "https://www.technologyreview.com/2026/08/24/1141740/kids-machines-language-learning/",
+        "published_at": "2026-08-24T09:00:00+00:00",
         "retrieved": true,
         "id": 1
-      },
-      {
-        "title": "PrimeAgentOrchestrator: Memory-Primed Agent Spawning for Personal AI Infrastructure",
-        "source": "arXiv cs.AI",
-        "category": "论文",
-        "url": "https://arxiv.org/abs/2608.20342",
-        "published_at": "2026-08-24T04:00:00+00:00",
-        "retrieved": true,
-        "id": 2
       }
     ]
   },
-  "research_brief": {
-    "facts": [
-      {
-        "claim": "论文《SDAD: Spec-Driven Agentic Development for the AI-Native SDLC》发布在 arXiv cs.AI,编号为 arXiv:2608.20341,提交日期为 2026 年 5 月 5 日,作者为 Vu Hung Nguyen 和 Thanh Nguyen。",
-        "source_ids": [
-          1
-        ],
-        "certainty": "confirmed"
-      },
-      {
-        "claim": "SDAD 论文摘要称,由大语言模型支持、上下文窗口达数十万至数百万 token 的前沿编码代理正在重构软件开发生命周期。",
-        "source_ids": [
-          1
-        ],
-        "certainty": "claimed"
-      },
-      {
-        "claim": "SDAD 论文摘要称,丰富上下文处理和多步推理现在能在单个工作流中摄取大量功能需求文档和仓库上下文,使规范质量成为自主交付的执行燃料。",
-        "source_ids": [
-          1
-        ],
-        "certainty": "claimed"
-      },
-      {
-        "claim": "SDAD 论文摘要称,Spec-Driven Agentic Development 被形式化为前期形式化与高速实现的结合,流程包括意图捕捉、机器可读规范、代理合成和人类签署下的独立多代理验证。",
-        "source_ids": [
-          1
-        ],
-        "certainty": "claimed"
-      },
-      {
-        "claim": "SDAD 论文摘要称,该研究回顾了 Waterfall 与 Agile 之间的历史摆动,引入 AI-code 作为第四种生产范式,并比较了 Human-Agile(约 2020 年)与 Agentic-SDAD(约 2026 年)在制品、节奏、问责和安全态势上的差异。",
-        "source_ids": [
-          1
-        ],
-        "certainty": "claimed"
-      },
-      {
-        "claim": "论文《PrimeAgentOrchestrator: Memory-Primed Agent Spawning for Personal AI Infrastructure》发布在 arXiv cs.AI,编号为 arXiv:2608.20342,提交日期为 2026 年 5 月 8 日,作者为 Myron Koch(Peak Summit Labs)。",
-        "source_ids": [
-          2
-        ],
-        "certainty": "confirmed"
-      },
-      {
-        "claim": "PAO 论文摘要称,大语言模型编码代理每次会话从空上下文窗口开始,丢弃此前工作积累的知识。",
-        "source_ids": [
-          2
-        ],
-        "certainty": "claimed"
-      },
-      {
-        "claim": "PAO 论文摘要称,PrimeAgentOrchestrator 会生成 Claude Code(Anthropic 的终端编码代理)的新实例,并预加载从用户现有个人数据库编译的相关记忆。",
-        "source_ids": [
-          2
-        ],
-        "certainty": "claimed"
-      },
-      {
-        "claim": "PAO 论文摘要称,在生成实例时,PAO 并行查询两个独立运营的记忆后端:一个 PostgreSQL 实体-观察数据库和一个 Cloudflare Worker 语义搜索索引,并使用后端特定检索策略融合结果。",
-        "source_ids": [
-          2
-        ],
-        "certainty": "claimed"
-      },
-      {
-        "claim": "PAO 论文摘要称,编译后的简报通过文件系统注入交付,利用了宿主代理的配置自动读取行为。",
-        "source_ids": [
-          2
-        ],
-        "certainty": "claimed"
-      },
-      {
-        "claim": "PAO 论文摘要称,PAO 管理完整代理生命周期,包括信任预播种、带错误检测的就绪轮询和自适应终端文本注入。",
-        "source_ids": [
-          2
-        ],
-        "certainty": "claimed"
-      },
-      {
-        "claim": "PAO 论文摘要称,该研究是四个月定期部署(2025 年 12 月至 2026 年 3 月)的经验报告。",
-        "source_ids": [
-          2
-        ],
-        "certainty": "claimed"
-      },
-      {
-        "claim": "两篇论文均出现在 arXiv 的 cs.AI 类别,其中 SDAD 还标注为 cs.SE,PAO 还标注为 cs.MA。",
-        "source_ids": [
-          1,
-          2
-        ],
-        "certainty": "confirmed"
-      },
-      {
-        "claim": "两篇论文在证据包中记录的 published_at 均为 2026-08-24T04:00:00+00:00。",
-        "source_ids": [
-          1,
-          2
-        ],
-        "certainty": "confirmed"
-      },
-      {
-        "claim": "SDAD 强调规范质量是后续自动执行的前提,PAO 强调把过往记忆预加载到新编码代理实例,两者分别对应编码代理在输入质量和跨会话知识持续上的改进路径。",
-        "source_ids": [
-          1,
-          2
-        ],
-        "certainty": "inferred"
-      }
-    ],
-    "uncertainties": [
-      "SDAD 和 PAO 的摘要均被截断,缺少对评估结果、失败案例、局限性和完整结论的描述。",
-      "两篇论文均为 arXiv 预印本,证据包中没有同行评审或独立验证信息,不能确认其结论已被学术界或工业界接受。",
-      "两篇论文的 arXiv 提交日期与证据包中 published_at 不一致:SDAD 提交日期为 2026 年 5 月 5 日,PAO 为 2026 年 5 月 8 日,而二者的 published_at 均为 2026-08-24;证据包未解释该时间差,不能确认哪个时间代表正式公开。",
-      "SDAD 中 AI-code 作为第四种生产范式的具体定义和论证在摘要中被截断,无法完整解释。",
-      "PAO 论文未在摘要中披露个人数据库的隐私、权限和安全性处理细节。",
-      "PAO 作者所属机构 Peak Summit Labs 仅来自论文署名,证据包中无独立信息。",
-      "虽然 PAO 论文自述四个月定期部署,但证据包中无独立复现或第三方采用信息。"
-    ],
-    "reader_questions": [
-      "为什么规范写得好不好会让 AI 编码代理的交付质量差别很大?",
-      "现在的 AI 编码代理为什么每次开始都像“失忆”,记忆预加载能解决什么?",
-      "规范驱动开发和传统瀑布、敏捷开发到底哪里不同?",
-      "如果 AI 代理自主交付代码,人类还需要做哪些决定和审批?",
-      "这些方法只是论文设想,还是已经有真实部署数据?",
-      "Claude Code 是什么,和普通 AI 聊天写代码有什么不同?",
-      "把个人数据库接入编码代理,隐私和安全怎么保障?",
-      "多代理验证是不是让多个 AI 互相检查,误判怎么办?"
-    ],
-    "key_terms": [
-      {
-        "term": "编码代理(coding agent)",
-        "explanation_cn": "能根据指令自动完成代码编写、修改和执行等任务的 AI 代理。"
-      },
-      {
-        "term": "上下文窗口(context window)",
-        "explanation_cn": "大语言模型单次可处理的 token 数量范围,决定了它能同时看到多少信息。"
-      },
-      {
-        "term": "token",
-        "explanation_cn": "文本被模型切分后的最小处理单位,不等于一个完整单词或汉字。"
-      },
-      {
-        "term": "功能需求文档(FRD)",
-        "explanation_cn": "描述软件应具备哪些功能、行为和约束的文档。"
-      },
-      {
-        "term": "规范驱动代理开发(SDAD)",
-        "explanation_cn": "论文提出的 AI 原生软件开发生命周期方法,将前期规范形式化与高速代理实现结合。"
-      },
-      {
-        "term": "机器可读规范",
-        "explanation_cn": "可被程序或 AI 直接解析、验证和执行的规范表示,而非仅供人阅读的自然语言文档。"
-      },
-      {
-        "term": "代理合成(agentic synthesis)",
-        "explanation_cn": "由编码代理根据规范自动生成、组合或整合软件实现的过程。"
-      },
-      {
-        "term": "多代理验证",
-        "explanation_cn": "多个独立 AI 代理交叉检查产出的机制,用于降低单一代理出错或遗漏的风险。"
-      },
-      {
-        "term": "人类签署(human sign-off)",
-        "explanation_cn": "关键节点仍需人类确认或批准的机制。"
-      },
-      {
-        "term": "AI 原生 SDLC",
-        "explanation_cn": "围绕 AI 能力重新设计软件开发生命周期,而不是在传统流程上简单添加 AI 工具。"
-      }
-    ],
-    "recommended_structure": [
-      "导读:编码代理的下一步不再只是“能写代码”,而是如何稳定交付软件",
-      "为什么规范质量成为执行燃料:SDAD 的规范驱动链路",
-      "如何给 Claude Code 预装记忆:PAO 的记忆后端与实例生成机制",
-      "两条路线共同指向的工程变量:上下文、规范质量、人类把关与安全",
-      "审慎看待:两篇论文仍是预印本,证据缺口和未验证结论",
-      "结语:从演示性编码到可交付软件的工程化拐点"
-    ]
-  },
+  "research_brief": {},
   "article": {
     "title_candidates": [
       {
-        "title": "AI 编码代理的下一步,卡在规范和记忆",
-        "angle": "信息型",
-        "score": 91
-      },
-      {
-        "title": "为什么 AI 能写代码,却还不能稳定交付?",
-        "angle": "问题型",
-        "score": 88
-      },
-      {
-        "title": "两篇新论文指向同一个瓶颈:规范和记忆",
-        "angle": "影响型",
-        "score": 85
-      },
-      {
-        "title": "Claude Code 总像失忆?一个方案是先把个人记忆喂给它",
-        "angle": "场景型",
-        "score": 83
-      },
-      {
-        "title": "想靠编码代理稳定交付,先把需求说清楚",
-        "angle": "读者收益型",
-        "score": 78
+        "title": "Kids outlearn AI—and we still don’t know why",
+        "angle": "兜底标题",
+        "score": 0
       }
     ],
-    "selected_title": "AI 编码代理的下一步,卡在规范和记忆",
-    "abstract": "两篇 arXiv 预印本分别从输入规范和会话记忆入手,讨论编码代理如何从“能写代码”走向“稳定交付”。SDAD 提出规范驱动代理开发,把机器可读规范视为后续执行的前提;PAO 则给 Claude Code 新实例预加载个人数据库中的相关记忆。文章梳理两条路线的机制、可操作含义与证据边界。",
-    "lead": "一个编码代理刚完成一个模块,新开会话后,它又把项目背景、约束和偏好忘得差不多。这不是单个工具的偶发问题。两篇预印本把这种尴尬指向两个具体缺口:输入规范不够机器可读,跨会话记忆没有被预加载。这也是从“演示代码”到“交付软件”之间常被忽略的两处缝隙。",
+    "selected_title": "Kids outlearn AI—and we still don’t know why",
+    "abstract": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
+    "lead": "兜底选题:按来源优先级和发布时间选出",
     "sections": [
       {
-        "heading": "能写代码,不等于能交付",
+        "heading": "现有资料",
         "paragraphs": [
           {
-            "text": "过去判断模型能力,常看它能否根据一小段提示生成可运行程序。真实软件开发要面对成堆需求文档、仓库上下文、历史改动和审批节点。前者更像是能力演示,后者才接近日常工程。两篇论文都从交付视角出发:编码代理不是不会写,而是在连续、多步骤的交付中容易跑偏。",
-            "source_ids": [
-              1,
-              2
-            ]
-          },
-          {
-            "text": "SDAD 论文摘要把矛头对准规范质量。当前,前沿编码代理的上下文窗口达到数十万至数百万 token,模型可以在单个工作流里吞下大量功能需求文档和仓库上下文。上下文窗口变大,意味着它有机会同时看到更多信息;但只有输入质量足够高,它才不会在大量信息中走偏。规范写得好不好,就变成自主交付的“执行燃料”。",
-            "source_ids": [
-              1
-            ]
-          },
-          {
-            "text": "PAO 论文则指出另一个问题:大语言模型编码代理每次会话从空上下文窗口开始,此前积累的知识被直接丢弃。代码能力可能在,但项目记忆不在。",
-            "source_ids": [
-              2
-            ]
-          }
-        ]
-      },
-      {
-        "heading": "SDAD:把规范做成执行燃料",
-        "paragraphs": [
-          {
-            "text": "论文《SDAD: Spec-Driven Agentic Development for the AI-Native SDLC》(arXiv:2608.20341)提出的不是单点技巧,而是一条更靠前的链路:意图捕捉、机器可读规范、代理合成,以及人类签署下的独立多代理验证。它把规范驱动代理开发形式化为前期形式化与高速实现的结合。",
-            "source_ids": [
-              1
-            ]
-          },
-          {
-            "text": "论文还回顾了 Waterfall 与 Agile 之间的历史摆动,把 AI-code 作为第四种生产范式引入,并比较大约 2020 年的 Human-Agile 与大约 2026 年的 Agentic-SDAD,差异涉及制品、节奏、问责和安全态势。换句话说,它把时间线拉长,而不只是比较单次生成质量。",
-            "source_ids": [
-              1
-            ]
-          },
-          {
-            "text": "这条链路中,机器可读规范最容易被低估。自然语言需求可以被模型阅读,却很难被稳定校验;如果规范转成可解析、可检查的形式,后面的生成、验证和签署才有闭环基础。比如,自然语言里的“用户可导出数据”如果不写清格式、范围和权限边界,代理只能自己补全,而这些补全往往就是返工来源。",
-            "source_ids": [
-              1
-            ]
-          }
-        ]
-      },
-      {
-        "heading": "PAO:给 Claude Code 预装记忆",
-        "paragraphs": [
-          {
-            "text": "《PrimeAgentOrchestrator: Memory-Primed Agent Spawning for Personal AI Infrastructure》(arXiv:2608.20342)由 Myron Koch(Peak Summit Labs)署名,针对的是会话失忆。它会在生成 Claude Code 新实例时,从用户现有的个人数据库里编译相关记忆,并在启动前预加载进去。Claude Code 是 Anthropic 的终端编码代理,与普通 AI 聊天写代码不同,它更直接地进入项目环境执行任务。",
-            "source_ids": [
-              2
-            ]
-          },
-          {
-            "text": "记忆检索分两路并行:一个 PostgreSQL 实体-观察数据库,一个 Cloudflare Worker 语义搜索索引。两种后端各自使用特定检索策略,随后再融合结果,而不是把所有信息一次性塞进上下文。",
-            "source_ids": [
-              2
-            ]
-          },
-          {
-            "text": "编译后的简报通过文件系统注入,利用宿主代理的配置自动读取行为完成交付。系统还管理完整生命周期,包括信任预播种、带错误检测的就绪轮询和自适应终端文本注入。",
-            "source_ids": [
-              2
-            ]
-          },
-          {
-            "text": "这个方法的关键不是记忆仓库本身,而是把记忆做成启动前置条件。代理不是边干活边回想,而是在进入任务前先带着一份背景简报。这比让代理在会话中自行搜索笔记更可控。",
-            "source_ids": [
-              2
-            ]
-          }
-        ]
-      },
-      {
-        "heading": "两条路线共同指向的工程变量",
-        "paragraphs": [
-          {
-            "text": "把两篇论文放在一起看,它们回答的是同一个问题:什么决定编码代理的交付质量?SDAD 的答案在输入端,规范必须足够精确;PAO 的答案在会话之间,经验必须被保留。两者都依赖更大的上下文窗口,但也都需要额外的工程结构去接住这些 token。上下文变大只是条件,不等于记忆会自己出现。",
-            "source_ids": [
-              1,
-              2
-            ]
-          },
-          {
-            "text": "如果这些假设成立,开发者的工作重点会从“怎么让模型写出更多行代码”转向“怎么准备输入、怎么保留上下文、怎么在关键节点安排人类签署”。",
-            "source_ids": []
-          },
-          {
-            "text": "多代理验证也不是让几个 AI 简单投票。它是在人类签署之前,由多个独立代理交叉检查产物。审批没有消失,只是位置和形式可能改变。",
-            "source_ids": [
-              1
-            ]
-          }
-        ]
-      },
-      {
-        "heading": "预印本还没回答的问题",
-        "paragraphs": [
-          {
-            "text": "这两篇论文目前都只是 arXiv 预印本,摘要被截断,缺少评估结果、失败案例和完整结论,也看不到同行评审信息。SDAD 提到的多代理验证,如果代理之间出现冲突或误判如何仲裁,同样没有展开。",
-            "source_ids": [
-              1,
-              2
-            ]
-          },
-          {
-            "text": "PAO 自称经历了四个月定期部署,时间从 2025 年 12 月到 2026 年 3 月,但摘要没有展开个人数据库的隐私、权限和安全细节,也没有第三方复现信息。",
-            "source_ids": [
-              2
-            ]
-          },
-          {
-            "text": "另外,SDAD 的提交日期是 2026 年 5 月 5 日,PAO 是 5 月 8 日,而证据中两篇的公开时间都记为 2026 年 8 月 24 日。这个时间差没有解释,不能把公开时间直接当成正式发表。",
-            "source_ids": [
-              1,
-              2
-            ]
-          },
-          {
-            "text": "对读者来说,这两篇更适合用来理解变量,不宜当成生产配置照搬。尤其是涉及权限、数据和签批时,更不能跳过人工确认。",
-            "source_ids": []
-          }
-        ]
-      },
-      {
-        "heading": "如果你正在用编码代理,可以先做三件事",
-        "paragraphs": [
-          {
-            "text": "第一,把最重要的项目约束改写成机器可读形式,例如可执行检查清单、结构化字段或校验脚本。SDAD 的假设是,规范质量会沿后续链路被放大。",
-            "source_ids": [
-              1
-            ]
-          },
-          {
-            "text": "第二,给代理准备一份启动简报。即使没有 PAO 那样的自动系统,手动把关键路径、命名约定和上次停下的位置写进会话开头,也能部分缓解空上下文起步的问题。",
-            "source_ids": [
-              2
-            ]
-          },
-          {
-            "text": "第三,把人类签署点固定下来。不要只检查“能不能跑”,还要检查是否越过权限、数据是否进入未授权路径。多代理验证可以帮你发现遗漏,但不能替代审批。",
+            "text": "Kids outlearn AI—and we still don't know why | MIT Technology Review Skip to Content MIT Technology Review Artificial intelligence Kids outlearn AI—and we still don’t know why LLMs need vastly more data than children to learn language. Understanding why could help us create more efficient models—and reveal more about developing minds. Elise Cuttsarchive page August 24, 2026 Selman Design People have been talking to each other for at least 100,000 years, as best we can tell. And in all that time,",
             "source_ids": [
               1
             ]
@@ -409,63 +52,37 @@
         ]
       }
     ],
-    "conclusion": "编码代理的下一步,可能不是更大的模型,而是更稳的工程接口:规范怎么传入,记忆怎么接上,人在哪里签字。两篇预印本给出的答案还很初步,但它们把问题从“模型能不能写”拉回到“软件能不能交付”。这个转折比参数本身更值得跟踪。",
+    "conclusion": "请补充事实核验、结构编辑和人工审核后再发布。",
     "visual_plan": {
-      "cover": {
-        "concept": "抽象工作台场景:左侧是散乱的自然语言需求纸页,中间被压成整齐的结构化卡片或模块,右侧是一个代理节点在生成代码。视觉重点放在中间规范层,强调它承接需求并驱动执行。不要出现具体产品界面、品牌或文字。",
-        "alt": "从自然语言需求到结构化规范,再到代理执行的抽象示意"
-      },
-      "illustrations": [
-        {
-          "after_section": 2,
-          "concept": "流程节点图:意图捕捉、机器可读规范、代理合成、独立多代理验证、人类签署。五到六个简约几何节点用箭头连接,人类签署节点用不同颜色突出在末端。场景是软件开发流水线,不出现真实界面。视觉重点:人类签署仍然在链条最后把关。",
-          "alt": "SDAD 链路中人类签署位于代理验证之后"
-        },
-        {
-          "after_section": 3,
-          "concept": "两个数据后端并行向一个新代理实例输入记忆,两条线分别从数据库和语义索引汇聚到中央的终端代理节点,再生成一份简报。抽象几何与箭头,体现检索融合,不展示真实界面。视觉重点:并行汇聚。",
-          "alt": "两个记忆后端并行检索,汇成简报预加载到新代理实例"
-        }
-      ]
+      "cover": {},
+      "illustrations": []
     }
   },
   "review": {
-    "total": 88,
-    "dimensions": {
-      "timeliness": 88,
-      "frontier": 90,
-      "accuracy": 84,
-      "structure": 88,
-      "readability": 89,
-      "chinese_style": 88,
-      "human_style": 86,
-      "headline": 90
-    },
+    "total": 0,
+    "dimensions": {},
     "issues": [
-      "两篇论文均为 arXiv 预印本,摘要截断,缺少评估结果、失败案例和完整结论,需人工确认正式版本是否有补充。",
-      "提交日期与公开时间不一致,且证据未解释原因,发布时需谨慎表述时间。",
-      "PAO 对个人数据库的隐私、权限与安全细节未展开,涉及用户数据时需额外核验。",
-      "SDAD 的多代理验证在冲突仲裁、误判处理上缺少细节,正文已降低语气但不宜给出确定性结论。"
+      "Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}"
     ],
     "fact_check": "needs_review"
   },
   "metrics": {
-    "char_count": 2258,
-    "chinese_ratio": 0.847,
-    "title_chinese_ratio": 0.882,
-    "citation_ratio": 0.9,
+    "char_count": 459,
+    "chinese_ratio": 0.086,
+    "title_chinese_ratio": 0.0,
+    "citation_ratio": 1.0,
     "ai_phrases": [],
     "unnecessary_english_glosses": [],
     "checks": {
-      "length": true,
-      "chinese_first": true,
-      "chinese_headline": true,
-      "abstract": true,
+      "length": false,
+      "chinese_first": false,
+      "chinese_headline": false,
+      "abstract": false,
       "human_style": true,
       "no_unnecessary_english_gloss": true,
       "citations": true,
-      "structure": true,
-      "headline_ab": true,
+      "structure": false,
+      "headline_ab": false,
       "model_review": false
     },
     "publishable": false,
