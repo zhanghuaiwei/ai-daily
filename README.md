@@ -57,13 +57,13 @@ git push -u origin main
 
 **第 2 步：配置 LLM Secrets**
 
-仓库页面 → Settings → Secrets and variables → Actions → New repository secret，添加三个：
+仓库页面 → Settings → Secrets and variables → Actions → New repository secret，添加三个（**推荐 DeepSeek**：便宜、中文摘要质量好、实测可通）：
 
 | Secret 名 | 值 | 说明 |
 |---|---|---|
-| `LLM_API_KEY` | 你的 key | 必填 |
-| `LLM_BASE_URL` | 如 `https://api.deepseek.com/v1` | 用 OpenAI 官方可不填 |
-| `LLM_MODEL` | 如 `deepseek-chat` | 不填默认 `gpt-4o-mini` |
+| `LLM_API_KEY` | 你的 DeepSeek key | 必填 |
+| `LLM_BASE_URL` | `https://api.deepseek.com/v1` | 用 OpenAI 官方可填 `https://api.openai.com/v1` |
+| `LLM_MODEL` | `deepseek-v4-pro` | 求质量用 pro，省钱用 `deepseek-v4-flash` |
 
 > 任意 OpenAI 兼容服务都行：DeepSeek（便宜，中文好）、Kimi、通义、GLM、OpenAI。筛选任务每天只调 1 次，成本几乎可以忽略。
 

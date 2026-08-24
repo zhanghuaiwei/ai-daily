@@ -17,6 +17,23 @@ from .fetcher import FeedItem
 
 log = logging.getLogger(__name__)
 
+# 轻量 .env 加载：key 持久化到项目根目录 .env，避免每次手动 export。
+# TODO(学习者): 想深入可换 python-dotenv，但这里几行就够用，不引额外依赖。
+def _load_dotenv(path: str = ".env") -> None:
+    if not os.path.exists(path):
+        return
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
+
+
+_load_dotenv()
+
+
 PROMPT = """你是一名「AI 前沿日报」的资深编辑，读者是中文开发者。
 
 从下面的候选新闻中筛选出 3-5 条**最有价值**的，规则：
@@ -39,7 +56,7 @@ def _build_client() -> OpenAI | None:
         return None
     return OpenAI(
         api_key=api_key,
-        base_url=os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1"),
+        base_url=os.environ.get("LLM_BASE_URL", "https://api.deepseek.com/v1"),
     )
 
 
@@ -49,7 +66,7 @@ def curate_with_llm(items: list[FeedItem], model: str | None = None) -> list[dic
         log.warning("未配置 LLM_API_KEY，走兜底筛选（priority + 新鲜度）")
         return curate_fallback(items)
 
-    model = model or os.environ.get("LLM_MODEL", "gpt-4o-mini")
+    model = model or os.environ.get("LLM_MODEL", "deepseek-v4-pro")
     payload = [
         {k: it.to_dict()[k] for k in ("title", "link", "source", "category", "summary")}
         for it in items[:80]  # 控制上下文长度，80 条足够
