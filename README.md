@@ -41,6 +41,7 @@ RSS 信息源（11 源，英文一手 + 聚合 + 中文）
 - **跨天去重**：同时使用历史链接和历史话题标题，避免同一事件换链接重复发布
 - **个人微信图文投递**：图片先提交到仓库，再把公网图片地址写入 Markdown，通过 Server酱 Turbo 推送到个人微信
 - **QQ 邮箱图文投递**：通过 QQ SMTP 加密连接发送完整文章，图片以内嵌附件呈现，不依赖公网图片地址
+- **双周自动清理**：每 14 天删除更早的 `output/日期/` 目录，并通过 QQ IMAP 只删除带项目专用标记的过期文章邮件
 - **独立产物**：每篇文章都有公众号 HTML、Markdown、JSON；每日另有选题总览和标题测试索引
 - **鲁棒设计**：RSS 并发抓取 + 超时重试、单源失败隔离、LLM 网络/格式异常自动降级、北京时间固定、Actions 并发保护
 - **内容安全**：RSS 视为不可信数据，模型输出只接受真实候选链接，HTML/Markdown 统一净化且仅允许 HTTP(S) 链接
@@ -114,6 +115,7 @@ python3 -m src.pipeline --dry-run
 ai-daily/
 ├── .github/workflows/
 │   ├── daily-digest.yml                # 每日 07:30 定时任务
+│   ├── biweekly-cleanup.yml             # 每 14 天清理过期输出和项目邮件
 │   └── ci.yml                          # push / PR 自动测试
 ├── config/sources.yaml                 # 信息源清单（加源改这里）
 ├── src/
@@ -155,6 +157,7 @@ ai-daily/
 - **改排版**：编辑 `templates/article.html`（全部内联 CSS）
 - **改时间窗**：workflow 里给 pipeline 加 `--window-hours 48`
 - **改去重周期**：给 pipeline 加 `--history-days 14`；设为 `0` 可关闭
+- **改清理保留期**：修改 `biweekly-cleanup.yml` 中两个 `14`；清理器只识别 `output/YYYY-MM-DD/`
 - **改发布时间**：workflow 同时修改 `cron: '30 7 * * *'` 和 `timezone: 'Asia/Shanghai'`
 - **自建 RSSHub**（可选，公共实例不稳时）：`docker run -d -p 1200:1200 diygod/rsshub`
 
@@ -177,7 +180,13 @@ python3 -m pytest
 微信投递会把最终 Markdown 正文发送给 Server酱这一第三方服务；如果不接受该数据路径，不配置 SendKey 即可，文章仍会保存在仓库。
 
 **Q: 如何推送到 QQ 邮箱？**
-登录 [QQ 邮箱](https://mail.qq.com) 后，在设置的账户服务中开启 SMTP 并生成授权码；把邮箱地址保存为 Secret `QQ_EMAIL_USER`，授权码保存为 `QQ_EMAIL_AUTH_CODE`。项目使用 `smtp.qq.com:465` 加密发送，默认发给该邮箱自己。授权码只放 Secrets，不要填写 QQ 登录密码。
+登录 [QQ 邮箱](https://mail.qq.com) 后，在设置的账户服务中开启 IMAP/SMTP 并生成授权码；把邮箱地址保存为 Secret `QQ_EMAIL_USER`，授权码保存为 `QQ_EMAIL_AUTH_CODE`。项目使用 `smtp.qq.com:465` 加密发送，并通过 `imap.qq.com:993` 清理过期项目邮件。授权码只放 Secrets，不要填写 QQ 登录密码。
+
+**Q: 双周清理会删掉什么？**
+仅删除保留期之外的 `output/YYYY-MM-DD/` 目录，以及收件箱/已发送中带 `X-AI-Daily: article` 专用邮件头的文章。其他输出文件、普通邮件和无法识别的目录都不会删除。工作流每周检查一次，由状态文件保证实际执行间隔不少于 14 天，也支持手动 `dry-run` 预览。
+
+**Q: 为什么不能自动删除微信里的旧消息？**
+Server酱正文会在服务端保存 1-3 天后自动过期，没有远程撤回微信客户端消息的接口。清理 `output/` 后旧消息中的仓库图片也会失效；微信聊天列表里的卡片如需删除，只能在微信客户端手动操作。
 
 **Q: 为什么当天没有收到正式文章？**
 系统宁可少发也不凑数。没有话题通过事实、篇幅、中文比例、引用和终审门禁时，只生成待审核稿，并发送人工检查提醒。配图失败不会触发这一门禁。

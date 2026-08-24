@@ -1,0 +1,79 @@
+name: Biweekly Article Cleanup
+
+on:
+  # 每周检查一次，由状态文件保证实际清理间隔不少于 14 天；失败后下周可重试。
+  schedule:
+    - cron: '20 3 * * 1'
+      timezone: 'Asia/Shanghai'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: '忽略上次运行日期并立即执行'
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: '只预览，不删除、不提交'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: ai-daily-cleanup-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install -r requirements.lock
+
+      - name: Clean expired outputs and QQ Mail articles
+        env:
+          QQ_EMAIL_USER: ${{ secrets.QQ_EMAIL_USER }}
+          QQ_EMAIL_AUTH_CODE: ${{ secrets.QQ_EMAIL_AUTH_CODE }}
+          FORCE_CLEANUP: ${{ inputs.force || false }}
+          DRY_RUN: ${{ inputs.dry_run || false }}
+        run: |
+          cleanup_args=(
+            --output-root output
+            --state-file .maintenance/cleanup-state.json
+            --retention-days 14
+            --minimum-interval-days 14
+          )
+          if [[ "${FORCE_CLEANUP}" == "true" ]]; then
+            cleanup_args+=(--force)
+          fi
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            cleanup_args+=(--dry-run)
+          fi
+          python -m src.cleanup "${cleanup_args[@]}"
+
+      - name: Commit cleanup result
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          git config user.name "ai-daily-bot"
+          git config user.email "actions@github.com"
+          # Runner 从干净检出开始，清理器只会改 output/ 与状态文件。
+          git add -A
+          if git diff --cached --quiet; then
+            echo "没有到期内容需要提交"
+            exit 0
+          fi
+          cleanup_date=$(TZ=Asia/Shanghai date +%F)
+          git commit -m "maintenance: cleanup ${cleanup_date}"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

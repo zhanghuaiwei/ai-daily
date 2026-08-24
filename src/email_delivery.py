@@ -105,6 +105,8 @@ def build_article_email(
     message["Subject"] = f"AI 前沿文章｜{safe_title}"
     message["From"] = sender
     message["To"] = recipient
+    # 清理器只匹配这个专用头，绝不按模糊主题删除用户的其他邮件。
+    message["X-AI-Daily"] = "article"
     message.set_content(plain_text)
     message.add_alternative(html_with_cids, subtype="html")
     html_part = message.get_payload()[-1]

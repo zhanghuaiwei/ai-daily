@@ -72,6 +72,7 @@ def test_qq_email_embeds_article_html_and_images(monkeypatch, tmp_path):
     assert from_addr == "123456789@qq.com"
     assert to_addrs == ["123456789@qq.com"]
     assert message["Subject"] == "AI 前沿文章｜测试文章"
+    assert message["X-AI-Daily"] == "article"
     assert "cid:ai-daily-1-cover.jpg" in message.get_body(preferencelist=("html",)).get_content()
     assert any(part.get_filename() == "cover.jpg" for part in message.walk())
 

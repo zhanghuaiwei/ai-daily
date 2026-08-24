@@ -44,7 +44,7 @@ git push -u origin main
 > 想换回 OpenAI：BASE_URL 填 `https://api.openai.com/v1`、MODEL 填 `gpt-4o-mini`，其余不动。
 > 配图默认使用 GPT Image 2。若接口提示模型权限问题，请检查余额，并按[图像生成官方说明](https://developers.openai.com/api/docs/guides/image-generation)完成必要的组织验证。
 > 微信推送密钥在 [Server酱 SendKey 页面](https://sct.ftqq.com/docs/getting-started/sendkey/) 获取。密钥只放 GitHub Secrets，不要写进代码。
-> QQ 邮箱需先在邮箱设置中开启 SMTP 并生成授权码；项目固定使用 `smtp.qq.com:465` SSL 加密连接。
+> QQ 邮箱需先在邮箱设置中开启 IMAP/SMTP 并生成授权码；项目使用 `smtp.qq.com:465` 发信，并通过 `imap.qq.com:993` 只清理带专用标记的过期项目邮件。
 
 默认微信图片地址来自 GitHub，因此仓库应为公开仓库。私有仓库必须把 `output/` 同步到公开 HTTPS 存储，
 再增加 Secret `PUBLIC_ASSET_ROOT_URL`（例如 `https://cdn.example.com/ai-daily/output`）。
@@ -69,7 +69,8 @@ git push -u origin main
 | 图像生成失败 | 自动降级为文字版；查看 `article.json` 的 `visuals.error`，检查图像模型权限、余额、超时和模型名 |
 | `WECHAT_SENDKEY 未配置` | 文章仍会生成，但不会推送；按阶段二配置 Secret 后重跑 |
 | QQ 邮箱账号或授权码未配置 | 文章和微信投递不受影响；配置 `QQ_EMAIL_USER` 与 `QQ_EMAIL_AUTH_CODE` 后重跑 |
-| QQ 邮箱认证失败 | 确认已开启 SMTP，Secret 中填写的是授权码而非登录密码；必要时重新生成授权码 |
+| QQ 邮箱认证失败 | 确认已开启 IMAP/SMTP，Secret 中填写的是授权码而非登录密码；必要时重新生成授权码 |
+| QQ 邮箱清理失败 | 确认 IMAP/SMTP 均已开启；文章发送不受影响，下次清理仍可重试 |
 | 没有文章通过质量门禁 | 微信收到人工检查提醒；这只由文字与事实质量决定，与配图是否成功无关 |
 | 微信正文显示裂图 | 公开仓库检查图片 URL；私有仓库配置能公开访问图片的 `PUBLIC_ASSET_ROOT_URL` |
 | 个别源 `[FAIL]` | 正常（源偶尔抽风会自动跳过）；全失败才需要查网络 |
@@ -100,6 +101,14 @@ git push -u origin main
 - **调整抓取时间窗**：`.github/workflows/daily-digest.yml` 里给 pipeline 命令加 `--window-hours 48`
 - **调整跨天去重**：pipeline 命令加 `--history-days 14`；`0` 表示关闭
 - **改发布时间**：同时修改 workflow 的 `cron` 和 `timezone`，默认是北京时间 07:30
+- **改双周清理策略**：`.github/workflows/biweekly-cleanup.yml`；默认保留最近 14 天
+
+## 双周清理边界
+
+- `output/`：仅清理名字严格匹配 `YYYY-MM-DD` 且超过 14 天的普通目录；符号链接和异常路径会拒绝处理。
+- QQ 邮箱：仅在收件箱和服务器标记为“已发送”的文件夹中，删除同时满足“项目专用邮件头”和“超过 14 天”的邮件。
+- 微信：Server酱服务端正文免费版约 1 天、会员版约 3 天后自动过期；微信客户端消息不支持程序远程撤回，只能手动删除。
+- 工作流每周一北京时间 03:20 检查，由 `.maintenance/cleanup-state.json` 保证实际清理间隔不少于 14 天。手动运行时可选择 `dry_run` 只预览。
 
 ## 安全提醒
 
