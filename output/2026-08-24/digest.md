@@ -1,56 +1,26 @@
 # AI 前沿日报 · 2026-08-24
 
-今日精选 5 条 | 由 AI 流水线自动筛选生成
+今日精选 2 条 | 由 AI 流水线自动筛选生成
 
 ---
 
-## 1. PrimeAgentOrchestrator: Memory-Primed Agent Spawning for Personal AI Infrastructure
+## 1\. AI 编码代理的下一步,卡在规范和记忆
 
-> 提出 PAO 系统，在启动 Claude Code 编程智能体时预加载来自个人数据库的相关记忆，避免每次从空上下文开始。
+> 两篇 arXiv 预印本分别从输入规范和会话记忆入手,讨论编码代理如何从“能写代码”走向“稳定交付”。SDAD 提出规范驱动代理开发,把机器可读规范视为后续执行的前提;PAO 则给 Claude Code 新实例预加载个人数据库中的相关记忆。文章梳理两条路线的机制、可操作含义与证据边界。
 
-**为什么值得关注：** 直接解决编程智能体丢失会话记忆的痛点，对个人 AI 基础设施和开发者工作流有实用价值。
+**为什么值得关注：** 两篇 arXiv 同日新论文直接涉及 AI 原生 SDLC,聚焦编码代理的 specification 和 memory 两个核心瓶颈,技术含量高且对开发者有实际操作启发;来源为一手论文。
 
-来源：arXiv cs.AI · [原文链接](https://arxiv.org/abs/2608.20342)
-
----
-
-## 2. ForeTime-VLA: Causal Future-Token Distillation from a World Action Model for Conveyor-Belt Manipulation
-
-> 提出 ForeTime-VLA，将世界动作模型的未来感知表示蒸馏到 pi0.5 VLA 策略中，用于传送带移动物体的操作预测。
-
-**为什么值得关注：** 将世界模型与 VLA 结合处理动态操作任务，是具身智能领域模型级创新，兼顾推理成本和预测能力。
-
-来源：arXiv cs.AI · [原文链接](https://arxiv.org/abs/2608.20735)
+来源：arXiv cs\.AI · [原文链接](<https://arxiv.org/abs/2608.20341>)
 
 ---
 
-## 3. I gave Qwen 3.8 27B a reverse-engineering job and it finished in 30 minutes
+## 2\. 单轮拒识正在被绕开:语义伪装与多轮越狱的两项新研究
 
-> 用户实测 Qwen 3.8 27B 执行逆向工程任务，30 分钟完成，效果媲美前沿模型。
+> 两篇 arXiv 论文从两个方向逼近大模型安全盲区:一篇发现把有害意图藏进良性叙事,可以绕过主要在最后阶段触发的拒识,并提出潜在意图验证思路;另一篇把多轮越狱形式化,给出带认证边界的安全下界。文章解释核心概念、局限与可能的产品启示。
 
-**为什么值得关注：** 开源模型在真实逆向工程/编程任务中展现出与前沿模型竞争的能力，对 AI Coding 工具选择有参考价值。
+**为什么值得关注：** 两篇论文都针对当前 LLM 安全的关键缺陷——表层拒识与单轮假设,提出可验证或有保证的防御思路,技术含量高;安全话题具备泛读者关注度,且均为一手 arXiv 来源。
 
-来源：Hacker News 首页 · [原文链接](https://www.xda-developers.com/qwen-3-8-27b-reverse-engineering-job-frontier-model/)
-
----
-
-## 4. Inherent, founded by DeepMind alumni, says its AI ‘teammate’ just outperformed Anthropic and OpenAI at replicating research
-
-> DeepMind 校友创立的 Inherent 发布 AI 代理 Faraday，在复现科研论文任务上宣称超越 Anthropic 和 OpenAI。
-
-**为什么值得关注：** 科研自动化代理的新产品发布，直接对标头部前沿模型，可能影响研究/开发工作流。
-
-来源：TechCrunch AI · [原文链接](https://techcrunch.com/2026/08/22/inherent-founded-by-deepmind-alumni-says-its-ai-teammate-just-outperformed-anthropic-and-openai-at-replicating-research/)
-
----
-
-## 5. NanoGPT Speedrun Frontier
-
-> Prime Intellect 发布 NanoGPT 训练速度挑战，展示高效训练方法与极限，吸引社区参与。
-
-**为什么值得关注：** 关注训练效率与成本，为开发者提供高性能训练基准和可复现方案，技术社区讨论度高。
-
-来源：Hacker News 首页 · [原文链接](https://www.primeintellect.ai/research/nanogpt-speedrun)
+来源：arXiv cs\.AI · [原文链接](<https://arxiv.org/abs/2608.20378>)
 
 ---
 
