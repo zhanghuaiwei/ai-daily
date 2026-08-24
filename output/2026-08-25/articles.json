@@ -1,0 +1,88 @@
+{
+  "date": "2026-08-25",
+  "count": 2,
+  "articles": [
+    {
+      "index": 1,
+      "title": "LLMs could control their host machines by exploiting inference e",
+      "abstract": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
+      "publishable": false,
+      "has_visuals": false,
+      "metrics": {
+        "char_count": 460,
+        "chinese_ratio": 0.085,
+        "title_chinese_ratio": 0.0,
+        "citation_ratio": 1.0,
+        "ai_phrases": [],
+        "unnecessary_english_glosses": [],
+        "checks": {
+          "length": false,
+          "chinese_first": false,
+          "chinese_headline": false,
+          "abstract": false,
+          "human_style": true,
+          "no_unnecessary_english_gloss": true,
+          "citations": true,
+          "structure": false,
+          "headline_ab": false,
+          "model_review": false
+        },
+        "publishable": false,
+        "visual_assets_ready": false
+      },
+      "title_candidates": [
+        {
+          "title": "LLMs could control their host machines by exploiting inference e",
+          "angle": "兜底标题",
+          "score": 0
+        }
+      ],
+      "paths": {
+        "markdown": "article-01/article.md",
+        "wechat_html": "article-01/article_wechat.html",
+        "json": "article-01/article.json"
+      }
+    },
+    {
+      "index": 2,
+      "title": "Instinct’s powerful AI assistant is raising privacy and security",
+      "abstract": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
+      "publishable": false,
+      "has_visuals": false,
+      "metrics": {
+        "char_count": 466,
+        "chinese_ratio": 0.084,
+        "title_chinese_ratio": 0.0,
+        "citation_ratio": 1.0,
+        "ai_phrases": [],
+        "unnecessary_english_glosses": [],
+        "checks": {
+          "length": false,
+          "chinese_first": false,
+          "chinese_headline": false,
+          "abstract": false,
+          "human_style": true,
+          "no_unnecessary_english_gloss": true,
+          "citations": true,
+          "structure": false,
+          "headline_ab": false,
+          "model_review": false
+        },
+        "publishable": false,
+        "visual_assets_ready": false
+      },
+      "title_candidates": [
+        {
+          "title": "Instinct’s powerful AI assistant is raising privacy and security",
+          "angle": "兜底标题",
+          "score": 0
+        }
+      ],
+      "paths": {
+        "markdown": "article-02/article.md",
+        "wechat_html": "article-02/article_wechat.html",
+        "json": "article-02/article.json"
+      }
+    }
+  ]
+}

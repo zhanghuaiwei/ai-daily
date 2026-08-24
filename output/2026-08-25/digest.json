@@ -1,0 +1,22 @@
+{
+  "date": "2026-08-25",
+  "count": 2,
+  "picks": [
+    {
+      "title": "LLMs could control their host machines by exploiting inference e",
+      "link": "https://boydkane.com/essays/llms-could-control-their-host-machines-by-exploiting-inference-engines",
+      "source": "Hacker News 首页",
+      "category": "独立文章",
+      "summary": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
+      "reason": "兜底选题:按来源优先级和发布时间选出"
+    },
+    {
+      "title": "Instinct’s powerful AI assistant is raising privacy and security",
+      "link": "https://techcrunch.com/2026/08/24/instincts-powerful-ai-assistant-is-raising-privacy-and-security-concerns/",
+      "source": "TechCrunch AI",
+      "category": "独立文章",
+      "summary": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
+      "reason": "兜底选题:按来源优先级和发布时间选出"
+    }
+  ]
+}

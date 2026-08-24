@@ -1,0 +1,96 @@
+{
+  "topic": {
+    "working_title": "Instinct’s powerful AI assistant is raising privacy and security concerns",
+    "angle": "从技术原理、实际价值和局限三个方面解释这一进展",
+    "reason": "兜底选题：按来源优先级和发布时间选出",
+    "sources": [
+      {
+        "title": "Instinct’s powerful AI assistant is raising privacy and security concerns",
+        "link": "https://techcrunch.com/2026/08/24/instincts-powerful-ai-assistant-is-raising-privacy-and-security-concerns/",
+        "summary": "Early testers are raving about what Instinct can do, but some say the AI assistant’s sweeping access, broad terms and ability to act on users’ behalf come with uncomfortable trade-offs.",
+        "source": "TechCrunch AI",
+        "category": "科技媒体",
+        "priority": 2,
+        "published_ts": 1787594635
+      }
+    ],
+    "ai_selected": false,
+    "evidence": [
+      {
+        "title": "Instinct’s powerful AI assistant is raising privacy and security concerns",
+        "source": "TechCrunch AI",
+        "category": "科技媒体",
+        "url": "https://techcrunch.com/2026/08/24/instincts-powerful-ai-assistant-is-raising-privacy-and-security-concerns/",
+        "published_at": "2026-08-24T18:03:55+00:00",
+        "retrieved": true,
+        "id": 1
+      }
+    ]
+  },
+  "research_brief": {},
+  "article": {
+    "title_candidates": [
+      {
+        "title": "Instinct’s powerful AI assistant is raising privacy and security",
+        "angle": "兜底标题",
+        "score": 0
+      }
+    ],
+    "selected_title": "Instinct’s powerful AI assistant is raising privacy and security",
+    "abstract": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
+    "lead": "兜底选题:按来源优先级和发布时间选出",
+    "sections": [
+      {
+        "heading": "现有资料",
+        "paragraphs": [
+          {
+            "text": "Instinct’s powerful AI assistant is raising privacy and security concerns | TechCrunch 🚨 Flash Sale 🚨 Get $100 off your Disrupt 2026 ticket Back by popular demand: Save up to $300 on Disrupt TechCrunch Desktop Logo TechCrunch Mobile Logo Site Search Toggle Mega Menu Toggle Biotech & Health Cloud Computing Government & Policy Media & Entertainment Transportation More from TechCrunch Startup Battlefield Partner Content TechCrunch Brand Studio Image Credits:Boris Zhitkov / Getty Images Instinct’s p",
+            "source_ids": [
+              1
+            ]
+          }
+        ]
+      }
+    ],
+    "conclusion": "请补充事实核验、结构编辑和人工审核后再发布。",
+    "visual_plan": {
+      "cover": {},
+      "illustrations": []
+    }
+  },
+  "review": {
+    "total": 0,
+    "dimensions": {},
+    "issues": [
+      "Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}"
+    ],
+    "fact_check": "needs_review"
+  },
+  "metrics": {
+    "char_count": 466,
+    "chinese_ratio": 0.084,
+    "title_chinese_ratio": 0.0,
+    "citation_ratio": 1.0,
+    "ai_phrases": [],
+    "unnecessary_english_glosses": [],
+    "checks": {
+      "length": false,
+      "chinese_first": false,
+      "chinese_headline": false,
+      "abstract": false,
+      "human_style": true,
+      "no_unnecessary_english_gloss": true,
+      "citations": true,
+      "structure": false,
+      "headline_ab": false,
+      "model_review": false
+    },
+    "publishable": false,
+    "visual_assets_ready": false
+  },
+  "publishable": false,
+  "visuals": {
+    "status": "skipped",
+    "error": "文章文字质量门禁未通过"
+  }
+}
