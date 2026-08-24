@@ -43,8 +43,8 @@ def main() -> int:
         log.error("筛选结果为空")
         return 1
 
-    # 3. 渲染产出
-    paths = write_outputs(picks)
+    # 3. 渲染产出（dry-run 写到独立目录，避免覆盖正式产物）
+    paths = write_outputs(picks, out_root="output-dryrun" if args.dry_run else "output")
     log.info("完成。今日 %d 条：", len(picks))
     for i, p in enumerate(picks, 1):
         log.info("  %d. [%s] %s", i, p.get("source", "?"), p.get("title", "?"))
