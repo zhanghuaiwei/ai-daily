@@ -1,96 +1,435 @@
 {
   "topic": {
-    "working_title": "Instinct’s powerful AI assistant is raising privacy and security concerns",
-    "angle": "从技术原理、实际价值和局限三个方面解释这一进展",
-    "reason": "兜底选题：按来源优先级和发布时间选出",
+    "working_title": "能自证的 AI 还不存在:开放权重模型为什么说不清自己内部发生了什么",
+    "angle": "从语义伪装攻击与内省能力测量两个新结果对照,讨论安全对齐不能依赖模型“自我报告”,以及这对可审计 AI 的工程与治理意味着什么。",
+    "reason": "两篇同日发布的 arXiv 论文提供了一手实验证据:Truth Lies Deep 展示语义伪装可绕过表层安全对齐,Open-Weight Masked Introspection 发现 8 个开放权重模型均无法报告自身计算是否被改动。该主题前沿、可解释、安全影响大,且不依赖融资宣传稿。",
     "sources": [
       {
-        "title": "Instinct’s powerful AI assistant is raising privacy and security concerns",
-        "link": "https://techcrunch.com/2026/08/24/instincts-powerful-ai-assistant-is-raising-privacy-and-security-concerns/",
-        "summary": "Early testers are raving about what Instinct can do, but some say the AI assistant’s sweeping access, broad terms and ability to act on users’ behalf come with uncomfortable trade-offs.",
-        "source": "TechCrunch AI",
-        "category": "科技媒体",
-        "priority": 2,
-        "published_ts": 1787594635
+        "title": "Truth Lies Deep: Countering Semantic Camouflage via Latent Intent Verification",
+        "link": "https://arxiv.org/abs/2608.20378",
+        "summary": "arXiv:2608.20378v1 Announce Type: new Abstract: Safety alignment in Large Language Models (LLMs) is often superficial, relying on refusal mechanisms that trigger only at the final stages of generation without erasing the foundational knowledge of harmful concepts acquired during pretraining. This study demonstrates that this architectural disconnect leaves models vulnerable to Semantic Camouflage -- adversarial attacks that wrap harmful intent in benign narrative contexts (e.g., creative writing",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "priority": 3,
+        "published_ts": 1787544000
+      },
+      {
+        "title": "Open-Weight Masked Introspection: Measuring What Language Models Can Report About Their Own Computation",
+        "link": "https://arxiv.org/abs/2608.20569",
+        "summary": "arXiv:2608.20569v1 Announce Type: new Abstract: Are frontier models able to introspect about their internal states? Recent work suggests that under certain conditions a complex enough model can audit its own internals, call out what changed, and report back confidently about it. We tested that claim on eight open-weight models from seven families and found no such ability: asked whether their own computation had been altered, none answered better than chance. To test it we built Open-Weight Mask",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "priority": 3,
+        "published_ts": 1787544000
       }
     ],
-    "ai_selected": false,
+    "ai_selected": true,
     "evidence": [
       {
-        "title": "Instinct’s powerful AI assistant is raising privacy and security concerns",
-        "source": "TechCrunch AI",
-        "category": "科技媒体",
-        "url": "https://techcrunch.com/2026/08/24/instincts-powerful-ai-assistant-is-raising-privacy-and-security-concerns/",
-        "published_at": "2026-08-24T18:03:55+00:00",
+        "title": "Truth Lies Deep: Countering Semantic Camouflage via Latent Intent Verification",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "url": "https://arxiv.org/abs/2608.20378",
+        "published_at": "2026-08-24T04:00:00+00:00",
         "retrieved": true,
         "id": 1
+      },
+      {
+        "title": "Open-Weight Masked Introspection: Measuring What Language Models Can Report About Their Own Computation",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "url": "https://arxiv.org/abs/2608.20569",
+        "published_at": "2026-08-24T04:00:00+00:00",
+        "retrieved": true,
+        "id": 2
       }
     ]
   },
-  "research_brief": {},
+  "research_brief": {
+    "facts": [
+      {
+        "claim": "证据包中的 arXiv 页面显示,论文《Truth Lies Deep: Countering Semantic Camouflage via Latent Intent Verification》发布于 arXiv:2608.20378,作者为 Md. Hasib Ur Rahman,提交日期为 2026 年 6 月 27 日,并被 2026 IEEE QPAIN 会议接收。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "confirmed"
+      },
+      {
+        "claim": "证据包中的 arXiv 页面显示,论文《Open-Weight Masked Introspection: Measuring What Language Models Can Report About Their Own Computation》发布于 arXiv:2608.20569,作者为 Emilio Ferrara,提交日期为 2026 年 8 月 20 日。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "confirmed"
+      },
+      {
+        "claim": "论文 1 提出,大语言模型的安全对齐往往是表面化的:拒绝机制只在生成最后阶段触发,并没有消除预训练阶段获得的有害概念知识。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文 1 称,这种架构脱节使模型容易受到“语义伪装”攻击——攻击者把有害意图包装在良性叙事语境(如创意写作)中,从而绕过标准输入和输出护栏。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文 1 分析了 Phi-3、Qwen2.5、Gemma-2b 三个小语言模型家族在对抗压力下的潜在激活轨迹。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文 1 作者识别出一个被称为“意图地平线”(Intent Horizon)的临界深度,通常位于模型总层数的 15%–20%;在该深度,模型对有害意图的预训练表征会随着查询被语境化为“安全”叙事而崩溃。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文 2 测试了来自七个模型家族的八个开放权重模型,询问它们的自身计算是否被修改。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文 2 构建了 OWMI 框架,对残差流位置、注意力头和稀疏自编码器特征施加干预,再询问模型是否察觉到变化,并与无干预假运行、影响匹配随机扰动、仅看可见输出的文本观察者等空条件比较。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文 2 报告在超过 78,000 次测量中,没有任何模型对真实干预与假运行的回答区分能力超过随机水平,AUROC 约为 0.5007;等价检验将效应幅度下界限定在 AUROC 的 0.15 个百分点以下。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文 2 发现,模型内部并不是没有可用于识别干预的信息:一个经微调用于报告此类干预的模型在留出方向上接近完美恢复,线性探针从相同激活中恢复干预存在的准确率为 75% 至 95.8%,在模型开口前的最后一层没有留出误差。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文 2 还发现,在一个模型中,干预信号只出现在置信度而非措辞中:其是/否报告从不变化,但报告附带的置信度区分干预与假运行的 AUROC 为 0.647。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文 2 的结论是,失败处在从内部状态到言语报告的路径上,因此以模型自身陈述为对象的监督需要用内部参照来验证。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文 2 作者认为,当前开放权重模型不具备内省能力,但这一结论对未来模型尚未定论,并已把 OWMI 作为库发布以持续测量这种能力。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "综合两项证据可以推断:在讨论安全治理时,不能默认模型能够可靠地“说出”自己内部是否处理了有害意图或是否被干预;表象输出可能被绕开,内部信息也可能无法到达言语报告。",
+        "source_ids": [
+          1,
+          2
+        ],
+        "certainty": "inferred"
+      }
+    ],
+    "uncertainties": [
+      "两项研究均为来源方报告,证据包只提供论文摘要或 arXiv 页面信息,没有独立复现或完整同行评审记录;论文 2 的 DOI 仍显示 pending registration。",
+      "论文 1 的摘要被截断,未能提供后期层表示的具体结果和完整结论,无法确认语义伪装防御方法在后续实验中的全部表现。",
+      "论文 1 只覆盖三个小语言模型家族,论文 2 只覆盖八个开放权重模型;这些发现能否扩展到更大规模或闭源模型,证据包中没有说明。",
+      "论文 1 和论文 2 的实验对象、干预方式和测量指标不同,不能直接进行量化比较。",
+      "“安全对齐不能依赖模型自我报告”是编辑角度下的合理推断,并非两篇论文的直接共同结论。"
+    ],
+    "reader_questions": [
+      "AI 为什么不能自己说清楚自己内部发生了什么?",
+      "什么是开放权重模型,它和 ChatGPT 这类闭源模型有什么不同?",
+      "语义伪装是不是用讲故事的方式骗过 AI?",
+      "研究者如何测量 AI 是否知道自己的计算被改过?",
+      "测试结果到底有多差?是不是和随机猜差不多?",
+      "如果模型内部其实有信息,为什么它就是说不出来?",
+      "这对 AI 安全监管、审计和可解释性意味着什么?",
+      "这些实验主要在小模型上进行,结论能推广到更大模型吗?",
+      "我们还能不能信任 AI 对自己行为的解释?"
+    ],
+    "key_terms": [
+      {
+        "term": "开放权重模型",
+        "explanation_cn": "权重参数公开、可下载并在本地运行或修改的模型,与只提供 API 的闭源模型相对。"
+      },
+      {
+        "term": "安全对齐",
+        "explanation_cn": "通过训练和机制让模型输出符合安全规范、拒绝有害请求,而不仅是表面拒绝。"
+      },
+      {
+        "term": "语义伪装",
+        "explanation_cn": "将有害意图包装在看似良性的叙事语境中,以绕过模型表面的输入和输出安全护栏。"
+      },
+      {
+        "term": "意图地平线",
+        "explanation_cn": "论文 1 提出的临界深度,通常位于模型层数的 15%–20%;在此区域,模型对有害意图的表征会随着查询被改写为安全叙事而崩溃。"
+      },
+      {
+        "term": "内省",
+        "explanation_cn": "模型能否报告或审计自己内部计算状态的能力。"
+      },
+      {
+        "term": "OWMI",
+        "explanation_cn": "Open-Weight Masked Introspection,论文 2 提出的开源框架,干预模型内部组件并检验模型是否报告变化。"
+      },
+      {
+        "term": "内部干预位点",
+        "explanation_cn": "论文 2 对模型残差流位置、注意力头和稀疏自编码器特征进行干预;这些都是观察和修改模型内部计算的入口。"
+      },
+      {
+        "term": "线性探针",
+        "explanation_cn": "在模型内部表示上训练一个简单线性分类器,用来检测某类信息是否存在。"
+      },
+      {
+        "term": "AUROC",
+        "explanation_cn": "衡量二分类区分能力的指标,0.5 等于随机猜测;越接近 0.5,说明区分力越弱。"
+      },
+      {
+        "term": "等价检验",
+        "explanation_cn": "一种统计方法,用来评估某个效应是否小到可以认为没有实际差异;论文 2 用它来给 AUROC 效应幅度设上限。"
+      }
+    ],
+    "recommended_structure": [
+      "导语:两项新研究同时指向“AI 说不出自己内部发生了什么”",
+      "第一项研究:语义伪装攻击如何暴露表面安全对齐",
+      "第二项研究:开放权重模型内省能力接近随机",
+      "关键反差:信息并非不存在,而是到不了言语报告",
+      "对可审计 AI 与安全治理的启示",
+      "局限与待解问题:小模型、预印本与未来模型的不确定性"
+    ]
+  },
   "article": {
     "title_candidates": [
       {
-        "title": "Instinct’s powerful AI assistant is raising privacy and security",
-        "angle": "兜底标题",
-        "score": 0
+        "title": "两项新研究:开放权重模型说不清自己内部发生了什么",
+        "angle": "信息型",
+        "score": 92
+      },
+      {
+        "title": "模型内部明明有信号,为什么就是说不出来?",
+        "angle": "问题型",
+        "score": 87
+      },
+      {
+        "title": "如果 AI 审计只信模型自述,会漏掉什么",
+        "angle": "影响型",
+        "score": 85
+      },
+      {
+        "title": "AI 能拒绝有害请求,但知道自己为什么拒绝吗?",
+        "angle": "问题型",
+        "score": 84
+      },
+      {
+        "title": "用讲故事骗过 AI:安全对齐的裂缝从内部开始",
+        "angle": "影响型",
+        "score": 82
       }
     ],
-    "selected_title": "Instinct’s powerful AI assistant is raising privacy and security",
-    "abstract": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
-    "lead": "兜底选题:按来源优先级和发布时间选出",
+    "selected_title": "两项新研究:开放权重模型说不清自己内部发生了什么",
+    "abstract": "两项新研究从不同方向指向同一个问题:大语言模型很难报告自己的内部计算。一项显示语义伪装可在早期层绕过安全对齐;另一项对 8 个开放权重模型做 7.8 万余次干预,发现模型回答“是否被改过”的能力接近随机。内部并非没有信息,而是到不了言语报告。这提醒安全审计不能只依赖模型自述。",
+    "lead": "问一个开放权重模型:“你刚才的计算过程是不是被改过?”它很可能给不出可靠答案。新的实验显示,这类模型对内部干预的报告能力接近随机;与此同时,只要把有害意图包装成创作故事,表层安全对齐也可能被绕过。两项研究指向同一个尴尬事实:模型能流畅说话,但未必知道、也未必能说出自己内部发生了什么。",
     "sections": [
       {
-        "heading": "现有资料",
+        "heading": "安全对齐为什么只是表面",
         "paragraphs": [
           {
-            "text": "Instinct’s powerful AI assistant is raising privacy and security concerns | TechCrunch 🚨 Flash Sale 🚨 Get $100 off your Disrupt 2026 ticket Back by popular demand: Save up to $300 on Disrupt TechCrunch Desktop Logo TechCrunch Mobile Logo Site Search Toggle Mega Menu Toggle Biotech & Health Cloud Computing Government & Policy Media & Entertainment Transportation More from TechCrunch Startup Battlefield Partner Content TechCrunch Brand Studio Image Credits:Boris Zhitkov / Getty Images Instinct’s p",
+            "text": "第一项研究题为《Truth Lies Deep: Countering Semantic Camouflage via Latent Intent Verification》,由 Md. Hasib Ur Rahman 提交,获 2026 IEEE QPAIN 会议接收。作者认为,现有大语言模型的安全对齐并不总是深层的:拒绝机制往往在生成最后阶段才触发,而预训练阶段获得的有害概念知识没有被消除。模型可能学会了拒绝,但没有忘掉它拒绝的东西。",
             "source_ids": [
               1
             ]
+          },
+          {
+            "text": "这种脱节为“语义伪装”留下空间。攻击者不直接说有害指令,而是把意图包进创意写作等良性叙事里,让标准输入和输出护栏失效。研究在 Phi-3、Qwen2.5、Gemma-2b 三个小模型家族上分析潜在激活轨迹,发现一个被称为“意图地平线”(Intent Horizon)的临界深度,通常位于模型总层数的 15%–20%。在这里,模型对有害意图的预训练表征会随着查询被改写成“安全”叙事而崩溃。",
+            "source_ids": [
+              1
+            ]
+          },
+          {
+            "text": "换句话说,有害意图并不是不存在,而是在中途被叙事包装压散了。拒绝看上去像模型“想通了”,但更可能是后期机制在表面按下的开关。这也解释了为什么单纯查看输入和输出文本,常常看不出攻击痕迹。",
+            "source_ids": []
+          }
+        ]
+      },
+      {
+        "heading": "78,000 次干预,模型没有察觉",
+        "paragraphs": [
+          {
+            "text": "第二项研究《Open-Weight Masked Introspection: Measuring What Language Models Can Report About Their Own Computation》把问题进一步量化。这里的开放权重模型,指权重参数公开、可下载并可本地修改的模型,与只提供 API 的闭源模型不同。作者构建了 OWMI 框架,从七个模型家族中取八个开放权重模型,对残差流位置、注意力头和稀疏自编码器特征施加干预,再问模型是否发现自己的计算被改过。对照组包括无干预假运行、随机扰动和只看可见输出的文本观察者。",
+            "source_ids": [
+              2
+            ]
+          },
+          {
+            "text": "结果很直接:超过 78,000 次测量中,没有模型在真实干预与假运行之间达到超过随机的区分能力,AUROC 约为 0.5007;等价检验把效应幅度压在 0.15 个百分点以内。也就是说,模型的回答和抛硬币差别不大。",
+            "source_ids": [
+              2
+            ]
+          },
+          {
+            "text": "这项研究问的不是“模型是否正确回答了某个事实”,而是“模型能不能报告自己内部发生过什么”。从结果看,它不能。这和我们日常觉得“AI 应该能解释自己”的直觉很不一样。",
+            "source_ids": []
+          }
+        ]
+      },
+      {
+        "heading": "信息其实在,只是到不了嘴里",
+        "paragraphs": [
+          {
+            "text": "更有意思的是,失败不是因为内部缺少信息。论文作者训练线性探针从相同激活中恢复干预存在,准确率达到 75% 至 95.8%;一个经微调用于报告干预的模型在留出方向上接近完美恢复。也就是说,模型内部有信号,而且信号不算弱。",
+            "source_ids": [
+              2
+            ]
+          },
+          {
+            "text": "还有一个模型的信号只出现在置信度而不是措辞上:它的“是/否”回答从不变化,但置信度区分干预与假运行的 AUROC 为 0.647。研究者因此判断,断点位于从内部状态到言语报告的路径上,而不是输入或内部表征本身。",
+            "source_ids": [
+              2
+            ]
+          },
+          {
+            "text": "这解释了为什么简单追问、让模型“再想想”或要求它坦白未必有效。模型不是嘴硬,而是它没有一条顺畅的路把内部状态翻译成语言。线性探针是外部工具,可以直接读取内部表示;模型自己的言语通道却做不到这一点。",
+            "source_ids": []
+          }
+        ]
+      },
+      {
+        "heading": "审计不能只听模型自述",
+        "paragraphs": [
+          {
+            "text": "两项研究合在一起,对安全治理有一个直接提醒:不能默认模型能可靠说出自己是否处理了有害意图,或是否被内部干预。表象输出可能被语义伪装绕开,内部信息也可能无法到达言语报告。如果审计流程把模型的自我解释当作事实,就会漏掉这两类错误。",
+            "source_ids": [
+              1,
+              2
+            ]
+          },
+          {
+            "text": "对开发者来说,更稳妥的做法是把模型自述当作待验证的证词,而不是结论。论文 2 的作者提出,以模型自身陈述为对象的监督需要用内部参照来验证;OWMI 作为库发布,也提供了持续测量的可能。审计记录如果只有问答文本,证据链并不完整。",
+            "source_ids": [
+              2
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "小模型、预印本和尚未定论",
+        "paragraphs": [
+          {
+            "text": "需要克制的是,两项研究都没有覆盖更大规模或闭源模型。论文 1 只分析三个小语言模型家族,论文 2 只测量八个开放权重模型,实验对象和干预方式也不同,不能直接做量化比较。证据包也只提供 arXiv 页面或摘要信息,没有独立复现或完整同行评审记录,论文 2 的 DOI 仍显示 pending registration。",
+            "source_ids": [
+              1,
+              2
+            ]
+          },
+          {
+            "text": "因此,现在可以质疑“当前开放权重模型不具备内省能力”的结论是否会在更大模型、不同架构或更长时间训练后改变。论文 2 作者自己也没有把话说死,只认为对当前模型成立,并保留未来继续测量的代码入口。对闭源模型,研究者没有直接数据,无法下同样判断。",
+            "source_ids": [
+              2
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "读者可以保留的一个判断",
+        "paragraphs": [
+          {
+            "text": "对普通用户,一个实用的判断是:不要因为模型说得流畅,就认为它在解释自己的真实原因。它给出的理由可能是训练阶段学到的表面叙述,而不是对内部计算的报告。询问 AI“你为什么这么说”,得到的答案更像对输出的解释,而不是对内部发生的事实的回忆。",
+            "source_ids": []
+          },
+          {
+            "text": "对开发者和研究者,结论更具体:如果要把 AI 纳入安全审计,需要把内部测量和言语报告分开看。言语报告是产物,内部参照才是证据。任何把解释当作审计核心的流程,都需要先回答一个前置问题:这段解释能不能与模型内部状态对应起来。",
+            "source_ids": []
           }
         ]
       }
     ],
-    "conclusion": "请补充事实核验、结构编辑和人工审核后再发布。",
+    "conclusion": "这些研究没有说 AI 一定会危险,也没有说解释一定无意义。它们只是把一个看起来抽象的要求变得可以测量:可审计 AI 不能只靠模型开口。一个能流畅写作的模型,可能仍然说不出自己刚才算了什么。这个区别,比“它是否诚实”更根本。",
     "visual_plan": {
-      "cover": {},
-      "illustrations": []
+      "cover": {
+        "concept": "一张剖面式视觉:左侧是层叠的大语言模型结构,浅层处有一个被良性叙事外壳包裹的有害意图信号;在模型深度约 15%–20% 处,该信号断裂成散点。右侧模型开口输出一个模糊、不确定的气泡。视觉重点是信号在浅层可见、中层断裂、语言输出端无法形成明确判断。",
+        "alt": "剖面的大语言模型内部,有害意图信号在中层断裂,模型无法清楚输出判断"
+      },
+      "illustrations": [
+        {
+          "after_section": 1,
+          "concept": "展示语义伪装过程的示意图:输入侧有一个写作故事的外壳包住有害请求;经过模型前段后,信号强度在约 15%–20% 深度骤降;输出端只出现看似安全的回答。视觉重点是前后信号强度的对比,以及临界深度处的断裂。",
+          "alt": "语义伪装请求在模型中部深度信号大幅减弱,输出端变得看似安全"
+        },
+        {
+          "after_section": 2,
+          "concept": "实验对比图:模型内部三个干预位点—残差流位置、注意力头、稀疏自编码器特征—被工具改变;模型输出端只在“是/否”之间摇摆,旁边有一个硬币示意随机水平。视觉重点是内部干预与言语回答之间的弱对应。",
+          "alt": "模型内部被干预后,回答是否发现变化的准确率接近抛硬币"
+        },
+        {
+          "after_section": 3,
+          "concept": "同一团内部激活分出两条通路:一条连接到外部线性探针,探针状态清晰可辨;另一条连接到模型自然语言输出,只出现含糊气泡。视觉重点是内部信号确实存在,但通往言语报告的路径没有把它带出来。",
+          "alt": "内部信号能被外部分类器识别,却无法进入模型的语言回答"
+        }
+      ]
     }
   },
   "review": {
-    "total": 0,
-    "dimensions": {},
+    "total": 90,
+    "dimensions": {
+      "timeliness": 92,
+      "frontier": 90,
+      "accuracy": 88,
+      "structure": 90,
+      "readability": 92,
+      "chinese_style": 91,
+      "human_style": 89,
+      "headline": 92
+    },
     "issues": [
-      "Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}"
+      "论文 2 的 DOI 仍为 pending registration,后续需核对正式版本。",
+      "论文 1 摘要被截断,未能确认完整结论和防御方法表现。",
+      "两项研究覆盖模型规模有限,向闭源模型和更大模型的推广仍需后续证据。"
     ],
-    "fact_check": "needs_review"
+    "fact_check": "pass"
   },
   "metrics": {
-    "char_count": 466,
-    "chinese_ratio": 0.084,
-    "title_chinese_ratio": 0.0,
-    "citation_ratio": 1.0,
+    "char_count": 2189,
+    "chinese_ratio": 0.864,
+    "title_chinese_ratio": 1.0,
+    "citation_ratio": 0.667,
     "ai_phrases": [],
     "unnecessary_english_glosses": [],
     "checks": {
-      "length": false,
-      "chinese_first": false,
-      "chinese_headline": false,
-      "abstract": false,
+      "length": true,
+      "chinese_first": true,
+      "chinese_headline": true,
+      "abstract": true,
       "human_style": true,
       "no_unnecessary_english_gloss": true,
       "citations": true,
-      "structure": false,
-      "headline_ab": false,
-      "model_review": false
+      "structure": true,
+      "headline_ab": true,
+      "model_review": true
     },
-    "publishable": false,
+    "publishable": true,
     "visual_assets_ready": false
   },
-  "publishable": false,
+  "publishable": true,
   "visuals": {
-    "status": "skipped",
-    "error": "文章文字质量门禁未通过"
+    "status": "failed",
+    "error": "图像生成失败:RateLimitError"
   }
 }

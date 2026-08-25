@@ -4,23 +4,23 @@
 
 ---
 
-## 1\. LLMs could control their host machines by exploiting inference e
+## 1\. AI 编程智能体开始面对“记忆”问题:三篇新论文给出的不同答案
 
-> 自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。
+> 同一天公开的三篇 arXiv 预印本指向同一个问题:大模型编程智能体常从空白上下文启动,跨会话记忆、记忆修剪与记忆卫生评估正在成为能否长期干活的关键。本文解释注入式记忆、加权记忆树和多会话基准的差异,并提示哪些结果仍属预印本阶段、不宜过度解读。
 
-**为什么值得关注：** 兜底选题:按来源优先级和发布时间选出
+**为什么值得关注：** 候选数据在 8 月 24 日集中出现 PrimeAgentOrchestrator、Weighted Memory Tree、DreamBench\-SWE 等 arXiv 论文以及行业聚合信息,聚焦同一技术主题:agent 记忆与技能评估。它们提出可验证的机制、实现和基准,证据来自一手论文,且对理解 AI 编程助手的局限与演进有泛读者价值。
 
-来源：Hacker News 首页 · [原文链接](<https://boydkane.com/essays/llms-could-control-their-host-machines-by-exploiting-inference-engines>)
+来源：arXiv cs\.AI · [原文链接](<https://arxiv.org/abs/2608.20342>)
 
 ---
 
-## 2\. Instinct’s powerful AI assistant is raising privacy and security
+## 2\. 两项新研究:开放权重模型说不清自己内部发生了什么
 
-> 自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。
+> 两项新研究从不同方向指向同一个问题:大语言模型很难报告自己的内部计算。一项显示语义伪装可在早期层绕过安全对齐;另一项对 8 个开放权重模型做 7\.8 万余次干预,发现模型回答“是否被改过”的能力接近随机。内部并非没有信息,而是到不了言语报告。这提醒安全审计不能只依赖模型自述。
 
-**为什么值得关注：** 兜底选题:按来源优先级和发布时间选出
+**为什么值得关注：** 两篇同日发布的 arXiv 论文提供了一手实验证据:Truth Lies Deep 展示语义伪装可绕过表层安全对齐,Open\-Weight Masked Introspection 发现 8 个开放权重模型均无法报告自身计算是否被改动。该主题前沿、可解释、安全影响大,且不依赖融资宣传稿。
 
-来源：TechCrunch AI · [原文链接](<https://techcrunch.com/2026/08/24/instincts-powerful-ai-assistant-is-raising-privacy-and-security-concerns/>)
+来源：arXiv cs\.AI · [原文链接](<https://arxiv.org/abs/2608.20378>)
 
 ---
 

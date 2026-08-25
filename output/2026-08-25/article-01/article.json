@@ -1,88 +1,437 @@
 {
   "topic": {
-    "working_title": "LLMs could control their host machines by exploiting inference engines",
-    "angle": "从技术原理、实际价值和局限三个方面解释这一进展",
-    "reason": "兜底选题：按来源优先级和发布时间选出",
+    "working_title": "AI 智能体开始有“记忆”和“技能考试”:从写代码到长期干活的工程拐点",
+    "angle": "从同日发布的多项 arXiv 研究与行业聚合信息切入,解释为什么上下文窗口变大仍不够,记忆保留、技能路由与多会话评估正在成为 AI 编程智能体进入生产环境的关键瓶颈。",
+    "reason": "候选数据在 8 月 24 日集中出现 PrimeAgentOrchestrator、Weighted Memory Tree、DreamBench-SWE 等 arXiv 论文以及行业聚合信息,聚焦同一技术主题:agent 记忆与技能评估。它们提出可验证的机制、实现和基准,证据来自一手论文,且对理解 AI 编程助手的局限与演进有泛读者价值。",
     "sources": [
       {
-        "title": "LLMs could control their host machines by exploiting inference engines",
-        "link": "https://boydkane.com/essays/llms-could-control-their-host-machines-by-exploiting-inference-engines",
-        "summary": "Article URL: https://boydkane.com/essays/llms-could-control-their-host-machines-by-exploiting-inference-engines Comments URL: https://news.ycombinator.com/item?id=49424387 Points: 79 # Comments: 39",
-        "source": "Hacker News 首页",
-        "category": "社区热点",
-        "priority": 2,
-        "published_ts": 1787598186
+        "title": "PrimeAgentOrchestrator: Memory-Primed Agent Spawning for Personal AI Infrastructure",
+        "link": "https://arxiv.org/abs/2608.20342",
+        "summary": "arXiv:2608.20342v1 Announce Type: new Abstract: Large language model (LLM) coding agents start each session with an empty context window, discarding accumulated knowledge from prior work. We present PrimeAgentOrchestrator (PAO), a system that spawns new instances of Claude Code -- Anthropic's terminal-based coding agent -- pre-loaded with relevant memories compiled from the user's existing personal databases. At spawn time, PAO queries two independently-operated memory backends in parallel (a Po",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "priority": 3,
+        "published_ts": 1787544000
+      },
+      {
+        "title": "Weighted Memory Tree: Remembering What Matters for Long-Horizon LLM Agents",
+        "link": "https://arxiv.org/abs/2608.20631",
+        "summary": "arXiv:2608.20631v1 Announce Type: new Abstract: Large language model (LLM) agents have demonstrated the ability to solve multi-step tasks requiring planning, tool use, and external information access, yet growing execution histories increase inference cost and expose reasoning to outdated, irrelevant, or misleading information, potentially degrading reasoning quality. Existing memory approaches organize or compress execution histories but provide limited mechanisms for deciding which memories re",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "priority": 3,
+        "published_ts": 1787544000
+      },
+      {
+        "title": "DreamBench-SWE: A Multi-Session Memory-Hygiene Benchmark for Software Agents",
+        "link": "https://arxiv.org/abs/2608.20664",
+        "summary": "arXiv:2608.20664v1 Announce Type: new Abstract: DreamBench-SWE is a multi-session benchmark for software-agent memory hygiene in which later software tasks depend on non-inferable evidence from earlier sessions and are scored by executable hidden oracles. We report the original scaled v2 fold and a separately preregistered v2.1 successor audit designed after that study but frozen before successor outcome inspection. The successor run completed 360/360 work units and 720/720 S3 cells across four ",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "priority": 3,
+        "published_ts": 1787544000
+      },
+      {
+        "title": "not much happened today",
+        "link": "https://news.smol.ai/issues/26-08-24-not-much/",
+        "summary": "**Agent harnesses** are becoming a key optimization focus, with NVIDIA research showing traditional skill checks poorly predict agent usefulness and proposing a new metric called **\"Skill Lift\"**. Open-source implementations of **persistent and self-modifying agents** like **Headlong** and **exo** emphasize durability features such as rollback and continuous operation. **Anthropic** advances enterprise infrastructure with **MCP connectors** featuring managed auth and support for long-running wor",
+        "source": "AI News (smol.ai)",
+        "category": "英文聚合/AI Coding",
+        "priority": 1,
+        "published_ts": 1787550279
       }
     ],
-    "ai_selected": false,
+    "ai_selected": true,
     "evidence": [
       {
-        "title": "LLMs could control their host machines by exploiting inference engines",
-        "source": "Hacker News 首页",
-        "category": "社区热点",
-        "url": "https://boydkane.com/essays/llms-could-control-their-host-machines-by-exploiting-inference-engines",
-        "published_at": "2026-08-24T19:03:06+00:00",
+        "title": "PrimeAgentOrchestrator: Memory-Primed Agent Spawning for Personal AI Infrastructure",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "url": "https://arxiv.org/abs/2608.20342",
+        "published_at": "2026-08-24T04:00:00+00:00",
         "retrieved": true,
         "id": 1
+      },
+      {
+        "title": "Weighted Memory Tree: Remembering What Matters for Long-Horizon LLM Agents",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "url": "https://arxiv.org/abs/2608.20631",
+        "published_at": "2026-08-24T04:00:00+00:00",
+        "retrieved": true,
+        "id": 2
+      },
+      {
+        "title": "DreamBench-SWE: A Multi-Session Memory-Hygiene Benchmark for Software Agents",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "url": "https://arxiv.org/abs/2608.20664",
+        "published_at": "2026-08-24T04:00:00+00:00",
+        "retrieved": true,
+        "id": 3
+      },
+      {
+        "title": "not much happened today",
+        "source": "AI News (smol.ai)",
+        "category": "英文聚合/AI Coding",
+        "url": "https://news.smol.ai/issues/26-08-24-not-much/",
+        "published_at": "2026-08-24T05:44:39+00:00",
+        "retrieved": true,
+        "id": 4
       }
     ]
   },
-  "research_brief": {},
+  "research_brief": {
+    "facts": [
+      {
+        "claim": "arXiv 页面显示论文《PrimeAgentOrchestrator: Memory-Primed Agent Spawning for Personal AI Infrastructure》编号为 2608.20342,作者为 Peak Summit Labs 的 Myron Koch,标注为 10 页、15 篇参考文献的经验报告。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "confirmed"
+      },
+      {
+        "claim": "该论文摘要称,LLM 编程智能体每个会话都从空上下文窗口开始,会丢弃此前工作积累的知识。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "作者提出 PrimeAgentOrchestrator(PAO),在生成新的 Claude Code 智能体实例时预载从用户已有个人数据库中整理的相关记忆。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "PAO 在 spawn 时并行查询两个独立运营的记忆后端:一个 PostgreSQL 实体-观察数据库和一个 Cloudflare Worker 语义搜索索引,并用后端特定的检索策略融合结果。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "PAO 通过文件系统注入投递编译后的简报,利用宿主智能体的配置自动读取行为;其生命周期管理包括信任预置、带错误检测的就绪轮询和自适应终端文本注入。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文报告了从 2025 年 12 月到 2026 年 3 月的四个月定期部署,作为经验报告。",
+        "source_ids": [
+          1
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "arXiv 页面显示论文《Weighted Memory Tree: Remembering What Matters for Long-Horizon LLM Agents》编号为 2608.20631,作者为 Quang Dao、Purvi Kathalkar、Kenneth Eaton,标注为 16 页、2 张图。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "confirmed"
+      },
+      {
+        "claim": "该论文称,LLM 智能体虽能解决需要规划、工具使用和外部信息访问的多步任务,但不断增长的执行历史会增加推理成本,并让推理暴露于过时、无关或误导性信息。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "Weighted Memory Tree(WMT)是一种层级记忆系统,把执行组织为任务、子任务和动作,并为每条记忆分配动态保留分数。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "WMT 通过事件型更新和基于选择的衰减修订保留分数,以保留有用信息、折叠已完成轨迹、抑制低效用内容,并保留对已折叠上下文的访问。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "该论文在 GAIA-Text 上评估 WMT,使用 Qwen3-8B、Gemma 4 E4B 和 Llama-3.1-8B,并包含消融和记忆中毒实验。",
+        "source_ids": [
+          2
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "arXiv 页面显示论文《DreamBench-SWE: A Multi-Session Memory-Hygiene Benchmark for Software Agents》编号为 2608.20664,作者为 Sarthak Singh,标注为 67 页。",
+        "source_ids": [
+          3
+        ],
+        "certainty": "confirmed"
+      },
+      {
+        "claim": "DreamBench-SWE 是一个多会话软件智能体记忆卫生基准,后续软件任务依赖早期会话中不可推断的证据,并由可执行隐藏 oracle 评分。",
+        "source_ids": [
+          3
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "论文报告了原始 scaled v2 fold 和一个单独预注册的 v2.1 successor audit;successor run 在四种条件下完成了 360/360 工作单元和 720/720 S3 cells。",
+        "source_ids": [
+          3
+        ],
+        "certainty": "claimed"
+      },
+      {
+        "claim": "原始 fold 的主要 DF-hybrid–B5 对比为 null(95/180 vs 89/180;clustered p=.518,Holm p=1),论文明确称这不是等效性证据。",
+        "source_ids": [
+          3
+        ],
+        "certainty": "claimed"
+      }
+    ],
+    "uncertainties": [
+      "三篇 arXiv 论文均为预印本,证据包未显示经过同行评议,其方法、结果和结论属于作者自述。",
+      "《Weighted Memory Tree》摘要被截断,缺少 WMT 相对 linear memory 的关键效果数据,无法判断提升幅度。",
+      "《DreamBench-SWE》原始 fold 的主要对比为 null 且明确不是等效性证据;successor 中各配置通过率差异有描述,但证据包未提供完整对照组和可解释的统计显著性。",
+      "AI News 是二手英文聚合,转述推特、公告和传闻,不能视为对模型规格、价格或企业部署效果的一手核实。",
+      "claude-melon-eap、claude-marshmallow-eap、Ox Alpha、Qwen 4、GPT Astra 等多为未发布或传闻信号,规格和可用性高度不确定。",
+      "三篇 arXiv 论文与 AI News 中的评测方法、指标和任务不同,无法直接判断哪种记忆方案更优;DreamBench-SWE 中部分外部记忆通过率最高约 53.9%,不足以证明长时任务已生产可用。",
+      "NVIDIA 的 Skill Lift、DreamBench-SWE 的记忆卫生基准和 PAO 的经验部署属于不同评测角度,不能互相替代,也不能直接合并为统一结论。"
+    ],
+    "reader_questions": [
+      "为什么 AI 能写代码却记不住上次干了什么?",
+      "上下文窗口已经很大了,为什么还不能直接解决记忆问题?",
+      "论文里提出的记忆方案有什么区别,普通人需要理解哪些?",
+      "这些系统真的能无人值守长期干活吗?实际失败率和成本是多少?",
+      "企业为什么开始关注智能体外壳(harness)而不是只换模型?什么才算“技能考试”?",
+      "记忆会给 AI 智能体带来新的安全、隐私或权限风险吗?",
+      "三篇 arXiv 论文都是预印本吗?这些数字可信吗?",
+      "现在有哪些开源项目或模型可以上手尝试?",
+      "不同记忆方案的结果看起来有矛盾,到底能不能说记忆有用?",
+      "AI 编程智能体进入生产环境的关键瓶颈是什么,离真正落地还有多远?"
+    ],
+    "key_terms": [
+      {
+        "term": "上下文窗口(context window)",
+        "explanation_cn": "模型单次可处理的 token 上限;若每次会话从空窗口开始,模型就看不到此前的任务历史。"
+      },
+      {
+        "term": "LLM coding agent",
+        "explanation_cn": "由大语言模型驱动、能调用终端或工具读写代码的编程智能体,例如 Claude Code。"
+      },
+      {
+        "term": "记忆后端(memory backend)",
+        "explanation_cn": "在模型外部保存会话历史、实体观察或语义向量的数据库与索引,供后续会话检索。"
+      },
+      {
+        "term": "PostgreSQL 实体-观察数据库",
+        "explanation_cn": "关系型数据库,用于存储实体及其观察信息。"
+      },
+      {
+        "term": "Cloudflare Worker 语义搜索索引",
+        "explanation_cn": "部署在 Cloudflare Worker 上的语义检索服务,通过相似度查找相关记忆。"
+      },
+      {
+        "term": "文件系统注入(filesystem injection)",
+        "explanation_cn": "把整理好的记忆简报写入智能体会自动读取的文件,使其启动时自动加载。"
+      },
+      {
+        "term": "Weighted Memory Tree",
+        "explanation_cn": "把执行历史组织成任务、子任务和动作的层级记忆系统,并为每条记忆打保留分数。"
+      },
+      {
+        "term": "retention score",
+        "explanation_cn": "记忆保留分数,决定一条记忆是否保持活跃、被折叠或被抑制。"
+      },
+      {
+        "term": "多会话记忆卫生基准",
+        "explanation_cn": "评估软件智能体在多次会话中保留必要信息、清理无用或污染信息的能力。"
+      },
+      {
+        "term": "GAIA-Text",
+        "explanation_cn": "用于评估智能体长时任务推理能力的文本基准。"
+      }
+    ],
+    "recommended_structure": [
+      "从“空上下文窗口”到记忆注入:三篇 arXiv 论文揭示的问题",
+      "记忆方案对比:注入式个人知识库、加权记忆树与多会话卫生基准",
+      "为什么技能考试不够:Skill Lift 与 harness 工程化",
+      "生产落地的临界点:成本、失败率、企业 MCP 与持久智能体",
+      "结论:哪些信号可信,哪些仍待验证"
+    ]
+  },
   "article": {
     "title_candidates": [
       {
-        "title": "LLMs could control their host machines by exploiting inference e",
-        "angle": "兜底标题",
-        "score": 0
+        "title": "AI 编程智能体开始面对“记忆”问题:三篇新论文给出的不同答案",
+        "angle": "信息型",
+        "score": 93
+      },
+      {
+        "title": "为什么 AI 能写代码,却记不住上次会话?",
+        "angle": "问题型",
+        "score": 89
+      },
+      {
+        "title": "从空窗口到长期干活:AI 编程智能体的记忆拐点",
+        "angle": "影响型",
+        "score": 88
+      },
+      {
+        "title": "记住、修剪、遗忘:软件智能体的新“记忆卫生”基准",
+        "angle": "信息型",
+        "score": 85
+      },
+      {
+        "title": "上下文窗口再大也不够:智能体的记忆工程要补三门课",
+        "angle": "影响型",
+        "score": 84
       }
     ],
-    "selected_title": "LLMs could control their host machines by exploiting inference e",
-    "abstract": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
-    "lead": "兜底选题:按来源优先级和发布时间选出",
+    "selected_title": "AI 编程智能体开始面对“记忆”问题:三篇新论文给出的不同答案",
+    "abstract": "同一天公开的三篇 arXiv 预印本指向同一个问题:大模型编程智能体常从空白上下文启动,跨会话记忆、记忆修剪与记忆卫生评估正在成为能否长期干活的关键。本文解释注入式记忆、加权记忆树和多会话基准的差异,并提示哪些结果仍属预印本阶段、不宜过度解读。",
+    "lead": "你让 AI 编程助手修一个上周出现过的 bug。它没有接着上次的调试记录往下做,而是先让你把相关文件再贴一遍。你问它:上次不是已经定位到某个函数了吗?它回答:我没有那部分信息。这种体验并不少见,尤其当项目跨越多个会话时。其背后是当前大语言模型编程智能体常从空上下文窗口开始,每个会话都像第一次见到你的项目。8月24日同一天公开的三篇 arXiv 论文,正好从三个方向回应这件具体的事。",
     "sections": [
       {
-        "heading": "现有资料",
+        "heading": "空白会话:为什么 AI 像失忆",
         "paragraphs": [
           {
-            "text": "LLMs could control their host machines by exploiting inference engines Aug 24, 20266 min read inference-engines loss-of-control exfiltration | Read on LessWrong | Large language models often take actions running on one computer (via an agentic harness such as Claude Code or Codex), however the LLMs’ responses to prompts are computed on a different computer with GPU access. Could a malicious LLM gain control of the host machine where its weights are loaded? Such a machine is a high-value target:",
+            "text": "把上下文窗口做大并不能自动解决这个问题。上下文窗口是模型单次能处理的 token 上限,它在变大,却管不到下一次会话会继承什么;如果把全部历史都塞进窗口,推理成本上升,历史里过时、无关甚至误导的信息也可能被当成依据。因此,记忆问题的关键在于会话之间有没有可靠的信息交接。《PrimeAgentOrchestrator》的描述更接近工程现实:编程智能体每个会话都从空上下文窗口开始,会丢弃此前工作积累的知识。《Weighted Memory Tree》则把后一个风险说得直白:不断增长的执行历史会增加推理成本,并让推理暴露于过时、无关或误导性信息。",
+            "source_ids": [
+              1,
+              2
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "三种路径:注入、修剪、考试",
+        "paragraphs": [
+          {
+            "text": "三篇论文不是同一场竞赛,而是分别处理记忆在启动、执行和评测三个阶段的问题。",
+            "source_ids": [
+              1,
+              2,
+              3
+            ]
+          },
+          {
+            "text": "PrimeAgentOrchestrator(PAO)的做法,是生成新智能体时先注入记忆。它不是在模型窗口里塞满历史,而是在生成新的 Claude Code 智能体实例前,从用户已有个人数据库中整理相关记忆并预载进去。所谓记忆注入,在它这里具体指:系统在启动时并行查询两个独立运营的记忆后端,一个是 PostgreSQL 实体-观察数据库,另一个是 Cloudflare Worker 语义搜索索引;两者采用不同检索策略,再把结果融合成简报,通过文件系统注入投递。宿主智能体的配置会自动读取这份简报,因此不需要改动模型本身。论文把这一定位为经验报告,记录了从 2025 年 12 月到 2026 年 3 月的四个月定期部署。它更像个人基础设施的工程尝试,而不是一个可复现的模型基准。",
             "source_ids": [
               1
             ]
+          },
+          {
+            "text": "Weighted Memory Tree(WMT)走的是另一条路:记忆太多以后怎么修剪。它把执行历史组织成任务、子任务和动作的层级结构,给每条记忆一个动态保留分数。系统用事件型更新和基于选择的衰减来修订分数,目标是保留有用信息、折叠已经完成的轨迹、抑制低效用内容,同时还能访问被折叠的上下文。保留分数在这里不是静态标签,而是会随任务进展变化的权重。评估在 GAIA-Text 上进行,模型包括 Qwen3-8B、Gemma 4 E4B 和 Llama-3.1-8B,并加入了消融和记忆中毒实验。由于摘要被截断,目前看不到它相对线性记忆的提升幅度,因此只能把它理解成一种记忆组织路线,而不是已被证实更优的方案。",
+            "source_ids": [
+              2
+            ]
+          },
+          {
+            "text": "第三篇论文 DreamBench-SWE 更接近一场针对软件智能体的记忆卫生考试。它由多会话任务组成,后续软件任务依赖早期会话里不可推断的证据,并用可执行的隐藏 oracle 来评分。也就是说,智能体不仅要会做当前任务,还要在该记住时记住、该清理时清理,评分不靠用户感觉,而靠隐藏答案对照。论文报告了一个原始 scaled v2 fold 和一个预先注册的 successor audit。successor run 在四种条件下完成了 360/360 工作单元和 720/720 S3 cells。这里要小心:完成全部单元不等于全部正确;原始 fold 的主要 DF-hybrid–B5 对比为 95/180 对 89/180,clustered p=.518,Holm p=1,论文自己也说这不是等效性证据。",
+            "source_ids": [
+              3
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "从能力问题到工程问题",
+        "paragraphs": [
+          {
+            "text": "三篇论文放在一起看,真正的信号不是某一种记忆方案赢了,而是记忆问题正在从模型能力问题变成工程与评测问题。PAO 把记忆接在数据库和检索系统上,说明生产环境需要可靠的外部记忆后端;WMT 引入保留分数,说明记忆必须被修剪和更新;DreamBench-SWE 提供多会话隐藏评分,说明记忆能力需要可验证的考试,而不是用户感觉。对使用 AI 编程助手的人来说,短期内更可能看到的变化不是模型突然变聪明,而是智能体外壳会更多接管会话间的状态、项目知识和权限管理。这也部分解释了行业讨论里“智能体外壳(harness)”为何被反复提起:模型本身不是唯一需要升级的环节,围绕模型的工程件正在成为差异点。",
+            "source_ids": [
+              1,
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "哪些数字还不能当真",
+        "paragraphs": [
+          {
+            "text": "但这些论文都是 arXiv 预印本,证据没有显示它们经过同行评议,方法、结果和结论均属作者自述。PAO 的四个月部署是个人经验报告,可复现性有限;WMT 缺少相对线性记忆的效果数据;DreamBench-SWE 的主要对比没有统计显著性,作者明确说不是等效性证据。更关键的是,三篇论文的评测角度、任务和指标不同,不能直接合并成“记忆已解决”的结论。即便 successor run 完成了所有工作单元,缺少完整对照组和可解释的统计显著性,仍不足以支持生产可用。这些工作更适合被理解为对瓶颈的确认,而不是突破性结果。",
+            "source_ids": [
+              1,
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "普通人怎么验收记忆",
+        "paragraphs": [
+          {
+            "text": "如果你正在试用 AI 编程助手,可以从三个行为判断它有没有记忆能力:新会话中是否主动读取项目说明或上次结论;是否会把无关、过时的调试记录带进当前任务;是否允许你查看、修改或清空它记住的内容。把这些当作功能验收,而不是迷信上下文窗口的数字。对技术选型者来说,现阶段仍应在关键合并、权限操作和生产部署前保留人工检查,把智能体输出当作可回滚的草案。记忆系统也会带来新的权限问题:如果外部数据库里存着项目路径或调试记录,谁可以读、什么时候删,应该在部署前明确。",
+            "source_ids": []
           }
         ]
       }
     ],
-    "conclusion": "请补充事实核验、结构编辑和人工审核后再发布。",
+    "conclusion": "AI 编程智能体从能写一段代码到能长期在一个项目里干活,中间隔着的不只是更大的模型,而是一套记忆系统:怎么保存、怎么剪枝、怎么评分。8月24日的三篇论文还没有带来确定答案,但已经让问题变得可讨论、可测试。对普通用户来说,遇到一个什么都记不住的 AI 助手,问题不一定出在智力,而可能出在它每次醒来时没有被递上工作笔记。真正值得跟踪的,不是某一次评分,而是下一次会话开始时,它到底读到了什么。",
     "visual_plan": {
-      "cover": {},
-      "illustrations": []
+      "cover": {
+        "concept": "一个编程智能体的抽象工作台:画面左侧是一个刚启动的空白会话窗口,只用空白矩形表示,没有任何界面文字;右侧是一个连接到数据库和语义索引的记忆整理装置,中间由文件系统注入的桥接路径连接。视觉重点:空白状态与外部结构化记忆的对比,突出新会话启动前的记忆传递,而不是机器人或发光大脑。",
+        "alt": "AI 编程智能体在新会话启动时从外部记忆装置接收工作笔记"
+      },
+      "illustrations": [
+        {
+          "after_section": 2,
+          "concept": "对比两种记忆组织方式:左侧是一个简报文件被放入智能体启动路径,右侧是一棵按保留分数显示粗细或明暗的层级树,高层节点保留、低效用节点折叠。主体是文件桥接与树状记忆结构,没有界面文字和品牌标识。视觉重点:注入与修剪两种机制并存,而非单一记忆库。",
+          "alt": "记忆注入与层级修剪两种机制并存的示意"
+        },
+        {
+          "after_section": 3,
+          "concept": "一条时间线上有两次会话:早期会话产生一个代码线索,后续会话被要求基于该线索完成任务,旁边有一个隐藏的评分器对照可执行答案检查结果。主体是时间线和隐藏评分器,强调跨会话依赖,没有界面文字。视觉重点:早期会话的证据必须被后续会话保留,评分由外部进行。",
+          "alt": "多会话记忆卫生基准的隐藏评分流程示意"
+        }
+      ]
     }
   },
   "review": {
-    "total": 0,
-    "dimensions": {},
+    "total": 89,
+    "dimensions": {
+      "timeliness": 90,
+      "frontier": 88,
+      "accuracy": 90,
+      "structure": 88,
+      "readability": 91,
+      "chinese_style": 91,
+      "human_style": 87,
+      "headline": 89
+    },
     "issues": [
-      "Error code: 429 - {'error': {'message': 'You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.', 'type': 'insufficient_quota', 'param': None, 'code': 'credit_balance_exhausted'}}"
+      "三篇 arXiv 均为预印本,未经同行评议,相关结论需要持续跟踪",
+      "《Weighted Memory Tree》摘要被截断,缺少相对 linear memory 的效果数据,正文已选择不量化",
+      "DreamBench-SWE 原始 fold 主对比不显著,successor run 完成率不等于正确率,需读者注意",
+      "AI News 二手聚合未作为本文事实来源,正文仅使用 arXiv 页面可追溯信息",
+      "文中“智能体外壳(harness)”等表述来自行业讨论,不构成对具体产品或模型的验证",
+      "题图和插图均不能出现界面文字、品牌图标或虚构评分界面"
     ],
     "fact_check": "needs_review"
   },
   "metrics": {
-    "char_count": 460,
-    "chinese_ratio": 0.085,
-    "title_chinese_ratio": 0.0,
-    "citation_ratio": 1.0,
+    "char_count": 2398,
+    "chinese_ratio": 0.85,
+    "title_chinese_ratio": 0.926,
+    "citation_ratio": 0.875,
     "ai_phrases": [],
-    "unnecessary_english_glosses": [],
+    "unnecessary_english_glosses": [
+      "智能体外壳(harness)"
+    ],
     "checks": {
-      "length": false,
-      "chinese_first": false,
-      "chinese_headline": false,
-      "abstract": false,
+      "length": true,
+      "chinese_first": true,
+      "chinese_headline": true,
+      "abstract": true,
       "human_style": true,
-      "no_unnecessary_english_gloss": true,
+      "no_unnecessary_english_gloss": false,
       "citations": true,
-      "structure": false,
-      "headline_ab": false,
+      "structure": true,
+      "headline_ab": true,
       "model_review": false
     },
     "publishable": false,

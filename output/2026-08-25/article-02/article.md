@@ -1,19 +1,58 @@
-# Instinct’s powerful AI assistant is raising privacy and security
+# 两项新研究:开放权重模型说不清自己内部发生了什么
 
-> 自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。
+> 两项新研究从不同方向指向同一个问题:大语言模型很难报告自己的内部计算。一项显示语义伪装可在早期层绕过安全对齐;另一项对 8 个开放权重模型做 7\.8 万余次干预,发现模型回答“是否被改过”的能力接近随机。内部并非没有信息,而是到不了言语报告。这提醒安全审计不能只依赖模型自述。
 
-兜底选题:按来源优先级和发布时间选出
+问一个开放权重模型:“你刚才的计算过程是不是被改过?”它很可能给不出可靠答案。新的实验显示,这类模型对内部干预的报告能力接近随机;与此同时,只要把有害意图包装成创作故事,表层安全对齐也可能被绕过。两项研究指向同一个尴尬事实:模型能流畅说话,但未必知道、也未必能说出自己内部发生了什么。
 
-## 现有资料
+## 安全对齐为什么只是表面
 
-Instinct’s powerful AI assistant is raising privacy and security concerns \| TechCrunch 🚨 Flash Sale 🚨 Get $100 off your Disrupt 2026 ticket Back by popular demand: Save up to $300 on Disrupt TechCrunch Desktop Logo TechCrunch Mobile Logo Site Search Toggle Mega Menu Toggle Biotech &amp; Health Cloud Computing Government &amp; Policy Media &amp; Entertainment Transportation More from TechCrunch Startup Battlefield Partner Content TechCrunch Brand Studio Image Credits:Boris Zhitkov / Getty Images Instinct’s p【1】
+第一项研究题为《Truth Lies Deep: Countering Semantic Camouflage via Latent Intent Verification》,由 Md\. Hasib Ur Rahman 提交,获 2026 IEEE QPAIN 会议接收。作者认为,现有大语言模型的安全对齐并不总是深层的:拒绝机制往往在生成最后阶段才触发,而预训练阶段获得的有害概念知识没有被消除。模型可能学会了拒绝,但没有忘掉它拒绝的东西。【1】
+
+这种脱节为“语义伪装”留下空间。攻击者不直接说有害指令,而是把意图包进创意写作等良性叙事里,让标准输入和输出护栏失效。研究在 Phi\-3、Qwen2\.5、Gemma\-2b 三个小模型家族上分析潜在激活轨迹,发现一个被称为“意图地平线”\(Intent Horizon\)的临界深度,通常位于模型总层数的 15%–20%。在这里,模型对有害意图的预训练表征会随着查询被改写成“安全”叙事而崩溃。【1】
+
+换句话说,有害意图并不是不存在,而是在中途被叙事包装压散了。拒绝看上去像模型“想通了”,但更可能是后期机制在表面按下的开关。这也解释了为什么单纯查看输入和输出文本,常常看不出攻击痕迹。
+
+## 78,000 次干预,模型没有察觉
+
+第二项研究《Open\-Weight Masked Introspection: Measuring What Language Models Can Report About Their Own Computation》把问题进一步量化。这里的开放权重模型,指权重参数公开、可下载并可本地修改的模型,与只提供 API 的闭源模型不同。作者构建了 OWMI 框架,从七个模型家族中取八个开放权重模型,对残差流位置、注意力头和稀疏自编码器特征施加干预,再问模型是否发现自己的计算被改过。对照组包括无干预假运行、随机扰动和只看可见输出的文本观察者。【2】
+
+结果很直接:超过 78,000 次测量中,没有模型在真实干预与假运行之间达到超过随机的区分能力,AUROC 约为 0\.5007;等价检验把效应幅度压在 0\.15 个百分点以内。也就是说,模型的回答和抛硬币差别不大。【2】
+
+这项研究问的不是“模型是否正确回答了某个事实”,而是“模型能不能报告自己内部发生过什么”。从结果看,它不能。这和我们日常觉得“AI 应该能解释自己”的直觉很不一样。
+
+## 信息其实在,只是到不了嘴里
+
+更有意思的是,失败不是因为内部缺少信息。论文作者训练线性探针从相同激活中恢复干预存在,准确率达到 75% 至 95\.8%;一个经微调用于报告干预的模型在留出方向上接近完美恢复。也就是说,模型内部有信号,而且信号不算弱。【2】
+
+还有一个模型的信号只出现在置信度而不是措辞上:它的“是/否”回答从不变化,但置信度区分干预与假运行的 AUROC 为 0\.647。研究者因此判断,断点位于从内部状态到言语报告的路径上,而不是输入或内部表征本身。【2】
+
+这解释了为什么简单追问、让模型“再想想”或要求它坦白未必有效。模型不是嘴硬,而是它没有一条顺畅的路把内部状态翻译成语言。线性探针是外部工具,可以直接读取内部表示;模型自己的言语通道却做不到这一点。
+
+## 审计不能只听模型自述
+
+两项研究合在一起,对安全治理有一个直接提醒:不能默认模型能可靠说出自己是否处理了有害意图,或是否被内部干预。表象输出可能被语义伪装绕开,内部信息也可能无法到达言语报告。如果审计流程把模型的自我解释当作事实,就会漏掉这两类错误。【1】【2】
+
+对开发者来说,更稳妥的做法是把模型自述当作待验证的证词,而不是结论。论文 2 的作者提出,以模型自身陈述为对象的监督需要用内部参照来验证;OWMI 作为库发布,也提供了持续测量的可能。审计记录如果只有问答文本,证据链并不完整。【2】
+
+## 小模型、预印本和尚未定论
+
+需要克制的是,两项研究都没有覆盖更大规模或闭源模型。论文 1 只分析三个小语言模型家族,论文 2 只测量八个开放权重模型,实验对象和干预方式也不同,不能直接做量化比较。证据包也只提供 arXiv 页面或摘要信息,没有独立复现或完整同行评审记录,论文 2 的 DOI 仍显示 pending registration。【1】【2】
+
+因此,现在可以质疑“当前开放权重模型不具备内省能力”的结论是否会在更大模型、不同架构或更长时间训练后改变。论文 2 作者自己也没有把话说死,只认为对当前模型成立,并保留未来继续测量的代码入口。对闭源模型,研究者没有直接数据,无法下同样判断。【2】
+
+## 读者可以保留的一个判断
+
+对普通用户,一个实用的判断是:不要因为模型说得流畅,就认为它在解释自己的真实原因。它给出的理由可能是训练阶段学到的表面叙述,而不是对内部计算的报告。询问 AI“你为什么这么说”,得到的答案更像对输出的解释,而不是对内部发生的事实的回忆。
+
+对开发者和研究者,结论更具体:如果要把 AI 纳入安全审计,需要把内部测量和言语报告分开看。言语报告是产物,内部参照才是证据。任何把解释当作审计核心的流程,都需要先回答一个前置问题:这段解释能不能与模型内部状态对应起来。
 
 ## 写在最后
 
-请补充事实核验、结构编辑和人工审核后再发布。
+这些研究没有说 AI 一定会危险,也没有说解释一定无意义。它们只是把一个看起来抽象的要求变得可以测量:可审计 AI 不能只靠模型开口。一个能流畅写作的模型,可能仍然说不出自己刚才算了什么。这个区别,比“它是否诚实”更根本。
 
 ## 参考资料
 
-1\. TechCrunch AI：[原文](<https://techcrunch.com/2026/08/24/instincts-powerful-ai-assistant-is-raising-privacy-and-security-concerns/>) · Instinct’s powerful AI assistant is raising privacy and security concerns
+1\. arXiv cs\.AI：[原文](<https://arxiv.org/abs/2608.20378>) · Truth Lies Deep: Countering Semantic Camouflage via Latent Intent Verification
+2\. arXiv cs\.AI：[原文](<https://arxiv.org/abs/2608.20569>) · Open\-Weight Masked Introspection: Measuring What Language Models Can Report About Their Own Computation
 
 <sub>资料整理日期：2026-08-25。发布前请进行人工事实核验。</sub>
