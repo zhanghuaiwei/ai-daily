@@ -1,0 +1,101 @@
+{
+  "topic": {
+    "working_title": "LLM 排行榜没有中立选项:选项顺序和提示措辞如何制造模型排名",
+    "angle": "以一篇新 arXiv 论文为核心,解释为何多选题基准的分数会随选项顺序、prompt 措辞和答案读取方式而变化,并且波动恰好集中在那些区分模型优劣的关键题目上。",
+    "reason": "该论文直接质疑主流 LLM 排行榜的可信度,技术含量高、证据来自一手 arXiv 论文,对从业者和普通读者都有解释价值;与近期讨论模型可解释性的主题不重复,提供了新的评测视角。",
+    "sources": [
+      {
+        "title": "There Is No Neutral Harness: Modern LLM Leaderboards Are Manufactured by Config-Fragile Items",
+        "link": "https://arxiv.org/abs/2608.21382",
+        "summary": "arXiv:2608.21382v1 Announce Type: new Abstract: Multiple-choice benchmarks fix the questions and the correct answers, but not the harness: the order of the options, the wording of the prompt, and whether a language model's answer is read from generated text or from per-option likelihoods. Work on this harness sensitivity reports it as aggregate score variance, leaving unexamined which items the variance falls on and whether they are the items that separate one model from the next. We treat the e",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "priority": 3,
+        "published_ts": 1787630400
+      }
+    ],
+    "ai_selected": true,
+    "evidence": [
+      {
+        "title": "There Is No Neutral Harness: Modern LLM Leaderboards Are Manufactured by Config-Fragile Items",
+        "source": "arXiv cs.AI",
+        "category": "论文",
+        "url": "https://arxiv.org/abs/2608.21382",
+        "published_at": "2026-08-25T04:00:00+00:00",
+        "retrieved": true,
+        "id": 1
+      }
+    ]
+  },
+  "research_brief": {},
+  "article": {
+    "title_candidates": [
+      {
+        "title": "LLM 排行榜没有中立选项:选项顺序和提示措辞如何制造模型排名",
+        "angle": "兜底标题",
+        "score": 0
+      }
+    ],
+    "selected_title": "LLM 排行榜没有中立选项:选项顺序和提示措辞如何制造模型排名",
+    "abstract": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
+    "lead": "该论文直接质疑主流 LLM 排行榜的可信度,技术含量高、证据来自一手 arXiv 论文,对从业者和普通读者都有解释价值;与近期讨论模型可解释性的主题不重复,提供了新的评测视角。",
+    "sections": [
+      {
+        "heading": "现有资料",
+        "paragraphs": [
+          {
+            "text": "[2608.21382] There Is No Neutral Harness: Modern LLM Leaderboards Are Manufactured by Config-Fragile Items Skip to main content Press Enter to search · Advanced search Computer Science > Artificial Intelligence arXiv:2608.21382 (cs) [Submitted on 17 Jul 2026] Title:There Is No Neutral Harness: Modern LLM Leaderboards Are Manufactured by Config-Fragile Items Authors:V.S. Raghu Parupudi View a PDF of the paper titled There Is No Neutral Harness: Modern LLM Leaderboards Are Manufactured by Config-F",
+            "source_ids": [
+              1
+            ]
+          }
+        ]
+      }
+    ],
+    "conclusion": "请补充事实核验、结构编辑和人工审核后再发布。",
+    "visual_plan": {
+      "cover": {},
+      "illustrations": []
+    }
+  },
+  "review": {
+    "total": 0,
+    "dimensions": {},
+    "issues": [
+      "所有已配置文字模型均失败: deepseek(deepseek-v4-pro): HTTP 402: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_error', 'param': None, 'code': 'invalid_request_error'}}"
+    ],
+    "fact_check": "needs_review"
+  },
+  "metrics": {
+    "char_count": 535,
+    "chinese_ratio": 0.187,
+    "title_chinese_ratio": 0.897,
+    "headline_score": 0,
+    "citation_ratio": 1.0,
+    "ai_phrases": [],
+    "unnecessary_english_glosses": [],
+    "checks": {
+      "length": false,
+      "chinese_first": false,
+      "chinese_headline": true,
+      "abstract": false,
+      "human_style": true,
+      "no_unnecessary_english_gloss": true,
+      "citations": true,
+      "structure": false,
+      "topic_focus": false,
+      "logical_flow": false,
+      "clear_structure": false,
+      "headline_ab": false,
+      "headline_quality": false,
+      "model_review": false
+    },
+    "publishable": false,
+    "visual_assets_ready": false
+  },
+  "publishable": false,
+  "visuals": {
+    "status": "skipped",
+    "error": "文章文字质量门禁未通过"
+  }
+}

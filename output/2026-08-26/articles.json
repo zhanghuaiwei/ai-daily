@@ -1,0 +1,118 @@
+{
+  "date": "2026-08-26",
+  "count": 2,
+  "articles": [
+    {
+      "index": 1,
+      "title": "OpenAI 自研芯片首批基准:比英伟达 Blackwell 更快更省电,但目前只是自测",
+      "abstract": "OpenAI 8月25日公布自研推理芯片 Jalapeño 的首批基准,称在 GPT-OSS 120B、DeepSeek R1 和 Kimi K2.5 1T 上,每瓦 AI 工作量比对比 Nvidia Blackwell 系统高1.5至1.9倍,端到端延迟低1.7至3.6倍。该芯片计划2026年底小批量部署、2027年放量。文章拆解这些倍数的含义、局限及其对英伟达依赖的短期影响。",
+      "publishable": false,
+      "has_visuals": false,
+      "metrics": {
+        "char_count": 2108,
+        "chinese_ratio": 0.719,
+        "title_chinese_ratio": 0.615,
+        "headline_score": 88,
+        "citation_ratio": 0.571,
+        "ai_phrases": [],
+        "unnecessary_english_glosses": [],
+        "checks": {
+          "length": true,
+          "chinese_first": false,
+          "chinese_headline": true,
+          "abstract": true,
+          "human_style": true,
+          "no_unnecessary_english_gloss": true,
+          "citations": true,
+          "structure": true,
+          "topic_focus": false,
+          "logical_flow": false,
+          "clear_structure": false,
+          "headline_ab": true,
+          "headline_quality": false,
+          "model_review": false
+        },
+        "publishable": false,
+        "visual_assets_ready": false
+      },
+      "title_candidates": [
+        {
+          "title": "OpenAI 自研芯片首批基准:比英伟达 Blackwell 更快更省电,但目前只是自测",
+          "angle": "信息型,突出具体主体、量化结果和自测限制",
+          "score": 88
+        },
+        {
+          "title": "Jalapeño 跑分出炉,OpenAI 离减少英伟达依赖还有多远?",
+          "angle": "问题型,聚焦芯片自研对英伟达依赖的影响",
+          "score": 87
+        },
+        {
+          "title": "延迟更低、吞吐更高,OpenAI 自研芯片的真实成色有多少?",
+          "angle": "影响加质疑型,用核心指标引出验证问题",
+          "score": 85
+        },
+        {
+          "title": "OpenAI 的 Jalapeño 芯片 2027 年才放量,现在能改变芯片格局吗?",
+          "angle": "影响型,用部署时间点揭示短期与长期的落差",
+          "score": 86
+        },
+        {
+          "title": "一颗芯片同时降低延迟和提升吞吐,OpenAI 的 Jalapeño 做对了什么?",
+          "angle": "好奇型,从技术突破切入解释设计思路",
+          "score": 86
+        }
+      ],
+      "paths": {
+        "markdown": "article-01/article.md",
+        "wechat_html": "article-01/article_wechat.html",
+        "json": "article-01/article.json"
+      }
+    },
+    {
+      "index": 2,
+      "title": "LLM 排行榜没有中立选项:选项顺序和提示措辞如何制造模型排名",
+      "abstract": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
+      "publishable": false,
+      "has_visuals": false,
+      "metrics": {
+        "char_count": 535,
+        "chinese_ratio": 0.187,
+        "title_chinese_ratio": 0.897,
+        "headline_score": 0,
+        "citation_ratio": 1.0,
+        "ai_phrases": [],
+        "unnecessary_english_glosses": [],
+        "checks": {
+          "length": false,
+          "chinese_first": false,
+          "chinese_headline": true,
+          "abstract": false,
+          "human_style": true,
+          "no_unnecessary_english_gloss": true,
+          "citations": true,
+          "structure": false,
+          "topic_focus": false,
+          "logical_flow": false,
+          "clear_structure": false,
+          "headline_ab": false,
+          "headline_quality": false,
+          "model_review": false
+        },
+        "publishable": false,
+        "visual_assets_ready": false
+      },
+      "title_candidates": [
+        {
+          "title": "LLM 排行榜没有中立选项:选项顺序和提示措辞如何制造模型排名",
+          "angle": "兜底标题",
+          "score": 0
+        }
+      ],
+      "paths": {
+        "markdown": "article-02/article.md",
+        "wechat_html": "article-02/article_wechat.html",
+        "json": "article-02/article.json"
+      }
+    }
+  ]
+}

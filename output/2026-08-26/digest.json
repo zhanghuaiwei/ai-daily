@@ -1,0 +1,22 @@
+{
+  "date": "2026-08-26",
+  "count": 2,
+  "picks": [
+    {
+      "title": "OpenAI 自研芯片首批基准:比英伟达 Blackwell 更快更省电,但目前只是自测",
+      "link": "https://www.theverge.com/ai-artificial-intelligence/984290/openai-jalapeno-ai-chip-benchmarks",
+      "source": "The Verge AI",
+      "category": "独立文章",
+      "summary": "OpenAI 8月25日公布自研推理芯片 Jalapeño 的首批基准,称在 GPT-OSS 120B、DeepSeek R1 和 Kimi K2.5 1T 上,每瓦 AI 工作量比对比 Nvidia Blackwell 系统高1.5至1.9倍,端到端延迟低1.7至3.6倍。该芯片计划2026年底小批量部署、2027年放量。文章拆解这些倍数的含义、局限及其对英伟达依赖的短期影响。",
+      "reason": "这是当天最明确的同一事件聚类,有 The Verge 与 TechCrunch 两家媒体报道交叉验证;内容涉及推理延迟、吞吐、能效等可量化技术指标,前沿性和读者价值都较高,也不是单纯融资新闻。"
+    },
+    {
+      "title": "LLM 排行榜没有中立选项:选项顺序和提示措辞如何制造模型排名",
+      "link": "https://arxiv.org/abs/2608.21382",
+      "source": "arXiv cs.AI",
+      "category": "独立文章",
+      "summary": "自动写作未完成,以下内容仅作为选题和资料预览,不应直接发布。",
+      "reason": "该论文直接质疑主流 LLM 排行榜的可信度,技术含量高、证据来自一手 arXiv 论文,对从业者和普通读者都有解释价值;与近期讨论模型可解释性的主题不重复,提供了新的评测视角。"
+    }
+  ]
+}
