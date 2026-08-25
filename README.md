@@ -149,13 +149,17 @@ python -m src.pipeline --articles 2 --target-chars 2000
 4. 确认日志、`output/<日期>/` 产物以及所配置的投递渠道无误。
 5. 保持 Actions 启用，之后主流程每天北京时间 07:30 自动运行。
 
-仓库包含三个工作流：
+仓库包含四个工作流：
 
 | 工作流 | 触发方式 | 作用 |
 |---|---|---|
 | `CI` | push、pull request | Python 编译、Ruff 静态检查和测试 |
 | `AI Daily Digest` | 每天 07:30、手动 | 生成文章、提交产物、QQ/微信投递 |
+| `Retry Existing Delivery` | 手动 | 按日期单独重试 QQ、微信或两个渠道，不重新生成文章 |
 | `Biweekly Article Cleanup` | 每周一 03:20 检查、手动 | 按至少 14 天间隔执行过期清理 |
+
+如果文章已经提交、但某个投递渠道临时失败，可在 **Actions → Retry Existing Delivery**
+填写产物日期并只选择失败渠道。这样不会重新调用大模型，也不会让已成功的渠道重复收到文章。
 
 > GitHub 原始文件地址只能直接用于公开仓库。私有仓库若要在微信中显示图片，请将 `output/` 同步到公开 HTTPS 存储，并配置 `PUBLIC_ASSET_ROOT_URL`。
 
@@ -346,7 +350,7 @@ Issue 和 pull request 都欢迎。适合优先参与的方向包括：
 <details>
 <summary>如何配置 QQ 邮箱？</summary>
 
-登录 [QQ 邮箱](https://mail.qq.com)，开启 IMAP/SMTP 并生成授权码。将邮箱地址保存为 `QQ_EMAIL_USER`，授权码保存为 `QQ_EMAIL_AUTH_CODE`。项目通过 `smtp.qq.com:465` 加密发送，并通过 `imap.qq.com:993` 清理带专用标记的过期项目邮件。
+登录 [QQ 邮箱](https://mail.qq.com)，开启 IMAP/SMTP 并生成授权码。将邮箱地址保存为 `QQ_EMAIL_USER`，授权码保存为 `QQ_EMAIL_AUTH_CODE`。项目优先通过 `smtp.qq.com:465` 的 SSL 加密连接发送；如果连接或认证前断开，会自动改用 `smtp.qq.com:587` 的 STARTTLS 加密连接。发送阶段不会自动重试，以免服务器已经收件时产生重复邮件。过期项目邮件通过 `imap.qq.com:993` 清理。
 </details>
 
 <details>

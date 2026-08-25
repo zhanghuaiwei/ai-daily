@@ -20,6 +20,7 @@ from .safety import clean_plain_text
 
 QQ_SMTP_HOST = "smtp.qq.com"
 QQ_SMTP_PORT = 465
+QQ_SMTP_STARTTLS_PORT = 587
 _IMAGE_SRC_RE = re.compile(
     r"(?P<prefix>\bsrc\s*=\s*)(?P<quote>['\"])images/"
     r"(?P<filename>[A-Za-z0-9._-]+\.(?:jpg|jpeg|png|webp))(?P=quote)",
@@ -139,17 +140,65 @@ def send_qq_email(
     if message.get("From") != user or message.get("To") != target:
         raise EmailDeliveryError("邮件发件人或收件人与 SMTP 配置不一致")
     context = ssl.create_default_context(cafile=certifi.where())
-    try:
-        with smtplib.SMTP_SSL(
-            QQ_SMTP_HOST,
-            QQ_SMTP_PORT,
-            timeout=timeout,
-            context=context,
-        ) as smtp:
-            smtp.login(user, secret)
-            smtp.send_message(message, from_addr=user, to_addrs=[target])
-    except (OSError, smtplib.SMTPException, TimeoutError) as err:
-        raise EmailDeliveryError(f"QQ 邮箱投递失败：{type(err).__name__}") from None
+
+    def send_with_ssl() -> tuple[str, Exception | None]:
+        stage = "连接"
+        try:
+            with smtplib.SMTP_SSL(
+                QQ_SMTP_HOST,
+                QQ_SMTP_PORT,
+                timeout=timeout,
+                context=context,
+            ) as smtp:
+                stage = "认证"
+                smtp.login(user, secret)
+                stage = "发送"
+                smtp.send_message(message, from_addr=user, to_addrs=[target])
+        except (OSError, smtplib.SMTPException, TimeoutError) as err:
+            return stage, err
+        return stage, None
+
+    def send_with_starttls() -> tuple[str, Exception | None]:
+        stage = "连接"
+        try:
+            with smtplib.SMTP(
+                QQ_SMTP_HOST,
+                QQ_SMTP_STARTTLS_PORT,
+                timeout=timeout,
+            ) as smtp:
+                smtp.ehlo()
+                stage = "加密"
+                smtp.starttls(context=context)
+                smtp.ehlo()
+                stage = "认证"
+                smtp.login(user, secret)
+                stage = "发送"
+                smtp.send_message(message, from_addr=user, to_addrs=[target])
+        except (OSError, smtplib.SMTPException, TimeoutError) as err:
+            return stage, err
+        return stage, None
+
+    ssl_stage, ssl_error = send_with_ssl()
+    if ssl_error is None:
+        return
+    if isinstance(ssl_error, smtplib.SMTPAuthenticationError):
+        raise EmailDeliveryError("SMTP 认证失败，请检查 QQ 邮箱账号、服务开关和授权码") from None
+    # 发送阶段的断连可能发生在服务器已收件之后，不能自动重发，以免产生重复邮件。
+    if ssl_stage == "发送":
+        raise EmailDeliveryError(
+            f"SMTP 465/SSL 在发送阶段失败：{type(ssl_error).__name__}"
+        ) from None
+
+    tls_stage, tls_error = send_with_starttls()
+    if tls_error is None:
+        return
+    if isinstance(tls_error, smtplib.SMTPAuthenticationError):
+        raise EmailDeliveryError("SMTP 认证失败，请检查 QQ 邮箱账号、服务开关和授权码") from None
+    raise EmailDeliveryError(
+        "SMTP 两种加密连接均失败："
+        f"465/SSL {ssl_stage}阶段 {type(ssl_error).__name__}；"
+        f"587/STARTTLS {tls_stage}阶段 {type(tls_error).__name__}"
+    ) from None
 
 
 def deliver_article_emails(

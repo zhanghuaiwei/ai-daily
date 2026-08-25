@@ -55,7 +55,7 @@ git push -u origin main
 > 多模型默认顺序是 GPT → DeepSeek → WorkBuddy/TokenHub → 千问。千问固定为最终兜底；至少配置一个文字模型 Key，建议务必配置 `QWEN_API_KEY`。
 > 配图默认使用 GPT Image 2。若接口提示模型权限问题，请检查余额，并按[图像生成官方说明](https://developers.openai.com/api/docs/guides/image-generation)完成必要的组织验证。
 > 微信推送密钥在 [Server酱 SendKey 页面](https://sct.ftqq.com/docs/getting-started/sendkey/) 获取。密钥只放 GitHub Secrets，不要写进代码。
-> QQ 邮箱需先在邮箱设置中开启 IMAP/SMTP 并生成授权码；项目使用 `smtp.qq.com:465` 发信，并通过 `imap.qq.com:993` 只清理带专用标记的过期项目邮件。
+> QQ 邮箱需先在邮箱设置中开启 IMAP/SMTP 并生成授权码；项目优先使用 `smtp.qq.com:465` 发信，连接失败时自动切换到 `smtp.qq.com:587` 的 STARTTLS 加密连接，并通过 `imap.qq.com:993` 只清理带专用标记的过期项目邮件。
 
 默认微信图片地址来自 GitHub，因此仓库应为公开仓库。私有仓库必须把 `output/` 同步到公开 HTTPS 存储，
 再增加 Secret `PUBLIC_ASSET_ROOT_URL`（例如 `https://cdn.example.com/ai-daily/output`）。
@@ -80,8 +80,9 @@ git push -u origin main
 | `IMAGE_API_KEY 未配置` | 正常生成并推送文字版；需要图文版时添加图像密钥后重跑 |
 | 图像生成失败 | 自动降级为文字版；查看 `article.json` 的 `visuals.error`，检查图像模型权限、余额、超时和模型名 |
 | `WECHAT_SENDKEY 未配置` | 文章仍会生成，但不会推送；按阶段二配置 Secret 后重跑 |
-| QQ 邮箱账号或授权码未配置 | 文章和微信投递不受影响；配置 `QQ_EMAIL_USER` 与 `QQ_EMAIL_AUTH_CODE` 后重跑 |
+| QQ 邮箱账号或授权码未配置 | 文章和微信投递不受影响；配置后在 `Retry Existing Delivery` 中按日期只重试 QQ |
 | QQ 邮箱认证失败 | 确认已开启 IMAP/SMTP，Secret 中填写的是授权码而非登录密码；必要时重新生成授权码 |
+| QQ 邮箱连接被服务器断开 | 程序会从 465/SSL 自动切换到 587/STARTTLS；仍失败时检查日志中的失败阶段和 QQ 邮箱安全状态 |
 | QQ 邮箱清理失败 | 确认 IMAP/SMTP 均已开启；文章发送不受影响，下次清理仍可重试 |
 | 没有文章通过质量门禁 | 微信收到人工检查提醒；这只由文字与事实质量决定，与配图是否成功无关 |
 | 微信正文显示裂图 | 公开仓库检查图片 URL；私有仓库配置能公开访问图片的 `PUBLIC_ASSET_ROOT_URL` |

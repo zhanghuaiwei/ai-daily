@@ -30,6 +30,19 @@ class FakeSMTP:
         self.sent.append((message, from_addr, to_addrs))
 
 
+class FakeStartTLSSMTP(FakeSMTP):
+    def __init__(self, host, port, timeout):
+        super().__init__(host, port, timeout, context=None)
+        self.starttls_context = None
+
+    def ehlo(self):
+        return 250, b"ok"
+
+    def starttls(self, context):
+        self.starttls_context = context
+        return 220, b"ready"
+
+
 def article_paths(tmp_path, publishable=True, with_image=True):
     article_dir = tmp_path / "article-01"
     image_dir = article_dir / "images"
@@ -104,6 +117,55 @@ def test_qq_email_error_never_exposes_authorization_code(monkeypatch, tmp_path):
             auth_code=secret,
         )
     assert secret not in str(caught.value)
+
+
+def test_qq_email_falls_back_to_starttls_when_ssl_disconnects(monkeypatch, tmp_path):
+    class DisconnectingSMTP(FakeSMTP):
+        def __enter__(self):
+            raise smtplib.SMTPServerDisconnected("connection closed")
+
+    FakeSMTP.instances.clear()
+    monkeypatch.setattr(email_delivery.smtplib, "SMTP_SSL", DisconnectingSMTP)
+    monkeypatch.setattr(email_delivery.smtplib, "SMTP", FakeStartTLSSMTP)
+
+    delivered = email_delivery.deliver_article_emails(
+        article_paths(tmp_path),
+        sender="123456789@qq.com",
+        auth_code="abcdefghijklmnop",
+    )
+
+    assert delivered == ["测试文章"]
+    smtp = next(item for item in FakeSMTP.instances if item.port == 587)
+    assert smtp.starttls_context is not None
+    assert smtp.login_args == ("123456789@qq.com", "abcdefghijklmnop")
+    assert len(smtp.sent) == 1
+
+
+def test_qq_email_reports_both_safe_connection_failures(monkeypatch, tmp_path):
+    secret = "abcdefghijklmnop"
+
+    class DisconnectingSSL(FakeSMTP):
+        def __enter__(self):
+            raise smtplib.SMTPServerDisconnected("ssl closed")
+
+    class DisconnectingStartTLS(FakeStartTLSSMTP):
+        def starttls(self, context):
+            raise smtplib.SMTPServerDisconnected("starttls closed")
+
+    monkeypatch.setattr(email_delivery.smtplib, "SMTP_SSL", DisconnectingSSL)
+    monkeypatch.setattr(email_delivery.smtplib, "SMTP", DisconnectingStartTLS)
+
+    with pytest.raises(email_delivery.EmailDeliveryError) as caught:
+        email_delivery.deliver_article_emails(
+            article_paths(tmp_path),
+            sender="123456789@qq.com",
+            auth_code=secret,
+        )
+
+    message = str(caught.value)
+    assert "465/SSL" in message
+    assert "587/STARTTLS" in message
+    assert secret not in message
 
 
 def test_qq_email_rejects_header_injection():
