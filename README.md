@@ -100,7 +100,7 @@ Windows PowerShell 激活虚拟环境时使用：
 python -m src.pipeline --dry-run --window-hours 72
 ```
 
-预览会写入 `output-dryrun/<北京时间日期>/`，内容始终标记为不可发布。确认 RSS 抓取与模板渲染正常后，在 `.env` 中至少填写 `LLM_API_KEY`，再执行正式流程：
+预览会写入 `output-dryrun/<北京时间日期>/`，内容始终标记为不可发布。确认 RSS 抓取与模板渲染正常后，在 `.env` 中至少填写一个文字模型供应商的 API Key，再执行正式流程：
 
 ```bash
 python -m src.pipeline --articles 2 --target-chars 2000
@@ -114,10 +114,17 @@ python -m src.pipeline --articles 2 --target-chars 2000
 
 | 变量 | 使用位置 | 必需 | 默认值或未配置行为 | 用途 |
 |---|---|---:|---|---|
-| `LLM_API_KEY` | 本地、Actions | 正式文章必需 | 缺失时仅生成不可发布预览 | OpenAI API key；用于选题、调研卡、写作和终审 |
+| `LLM_PROVIDER_ORDER` | 本地、Actions Variables | 否 | `gpt,deepseek,workbuddy,qwen` | 文字模型优先级；千问始终被移动到最后作为兜底 |
+| `LLM_API_KEY` | 本地、Actions | 至少一个文字 Key | 缺失时跳过 GPT | OpenAI API key；兼容旧版配置 |
 | `LLM_BASE_URL` | 本地、Actions | 否 | `https://api.openai.com/v1` | OpenAI API 地址 |
 | `LLM_MODEL` | 本地、Actions | 否 | `gpt-5.6-terra` | 默认使用兼顾文章质量和成本的 [GPT-5.6 Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra) |
 | `LLM_REASONING_EFFORT` | 本地、Actions | 否 | `medium` | GPT-5.6 推理强度：`none`、`low`、`medium`、`high`、`xhigh` 或 `max` |
+| `DEEPSEEK_API_KEY` | 本地、Actions | 否 | 缺失时跳过 | DeepSeek API key |
+| `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` | 本地、Actions | 否 | `https://api.deepseek.com` / `deepseek-v4-pro` | DeepSeek 兼容接口与模型 |
+| `WORKBUDDY_API_KEY` | 本地、Actions | 否 | 缺失时跳过 | WorkBuddy 所用腾讯云 TokenHub API key，不是桌面端登录凭据 |
+| `WORKBUDDY_BASE_URL` / `WORKBUDDY_MODEL` | 本地、Actions | 否 | Token Plan 个人版地址 / `hy3` | 按实际 TokenHub 套餐覆盖 |
+| `QWEN_API_KEY` | 本地、Actions | 建议配置 | 缺失时无法执行最终兜底 | 阿里云百炼 API key；也兼容本地变量 `DASHSCOPE_API_KEY` |
+| `QWEN_BASE_URL` / `QWEN_MODEL` | 本地、Actions | 否 | 北京共享域名 / `qwen3.8-max` | 千问兼容接口与兜底模型；其他地域必须覆盖地址 |
 | `IMAGE_API_KEY` | 本地、Actions | 否 | 缺失时继续输出文字版 | 封面和正文插图生成 |
 | `IMAGE_BASE_URL` | 本地、Actions | 否 | `https://api.openai.com/v1` | 图像接口地址 |
 | `IMAGE_MODEL` | 本地、Actions | 否 | `gpt-image-2` | 图像模型名称 |
@@ -128,7 +135,9 @@ python -m src.pipeline --articles 2 --target-chars 2000
 | `EMAIL_TO` | 本地、Actions | 否 | 默认发送给 `QQ_EMAIL_USER` | 邮件收件地址 |
 | `PUBLIC_ASSET_ROOT_URL` | Actions | 否 | 使用提交后的 GitHub 原始文件地址 | 私有仓库中的公开图片根地址 |
 
-默认配置直接调用 OpenAI。项目仍保留 OpenAI 兼容接口入口；切换其他服务商时可调整 `LLM_BASE_URL` 与 `LLM_MODEL`，但应重新跑测试并人工检查至少一批文章。
+文字模型默认按 `GPT → DeepSeek → WorkBuddy/TokenHub → 千问` 调用。缺少 Key 的供应商会被跳过；额度不足、限流、鉴权失败、模型不可用或连接失败时会记录原因并切换下一家。同一次运行中已经确认不可用的供应商会被熔断，避免选题、调研、写作和终审阶段重复消耗重试时间。千问固定为最后一层，所有模型都失败时才生成不可发布资料卡。
+
+[DeepSeek](https://api-docs.deepseek.com/) 和[千问](https://help.aliyun.com/en/model-studio/compatibility-of-openai-with-dashscope)均使用供应商官方的 OpenAI 兼容接口；WorkBuddy 是桌面客户端，本项目实际接入的是其使用的[腾讯云 TokenHub API](https://cloud.tencent.com/document/product/1823/130119)。订阅桌面产品不等于已经拥有后端 API Key，请以各平台控制台生成的 Key 为准。
 
 ## 部署到 GitHub Actions
 

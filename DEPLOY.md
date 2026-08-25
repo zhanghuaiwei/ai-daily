@@ -33,6 +33,15 @@ git push -u origin main
 | `LLM_BASE_URL` | `https://api.openai.com/v1` |
 | `LLM_MODEL` | `gpt-5.6-terra` |
 | `LLM_REASONING_EFFORT` | `medium`（可省略） |
+| `DEEPSEEK_API_KEY` | DeepSeek API key（可省略） |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com`（可省略） |
+| `DEEPSEEK_MODEL` | `deepseek-v4-pro`（可省略） |
+| `WORKBUDDY_API_KEY` | 腾讯云 TokenHub API key（可省略，不是 WorkBuddy 登录凭据） |
+| `WORKBUDDY_BASE_URL` | `https://api.lkeap.cloud.tencent.com/plan/v3`（按套餐覆盖） |
+| `WORKBUDDY_MODEL` | `hy3`（按套餐支持的 Model ID 覆盖） |
+| `QWEN_API_KEY` | 阿里云百炼 API key（建议配置，作为最终兜底） |
+| `QWEN_BASE_URL` | `https://dashscope.aliyuncs.com/compatible-mode/v1`（其他地域需覆盖） |
+| `QWEN_MODEL` | `qwen3.8-max`（可省略） |
 | `IMAGE_API_KEY` | 你的 OpenAI API key（图像生成使用） |
 | `IMAGE_BASE_URL` | `https://api.openai.com/v1`（可省略） |
 | `IMAGE_MODEL` | `gpt-image-2`（可省略） |
@@ -43,6 +52,7 @@ git push -u origin main
 
 > OpenAI API key 在 [API Keys](https://platform.openai.com/api-keys) 页面创建，只放 GitHub Secrets，不要提交到仓库。
 > 默认文字模型为 [`gpt-5.6-terra`](https://developers.openai.com/api/docs/models/gpt-5.6-terra)；如果账户暂时没有该模型权限，可在确认可用模型后覆盖 `LLM_MODEL`。
+> 多模型默认顺序是 GPT → DeepSeek → WorkBuddy/TokenHub → 千问。千问固定为最终兜底；至少配置一个文字模型 Key，建议务必配置 `QWEN_API_KEY`。
 > 配图默认使用 GPT Image 2。若接口提示模型权限问题，请检查余额，并按[图像生成官方说明](https://developers.openai.com/api/docs/guides/image-generation)完成必要的组织验证。
 > 微信推送密钥在 [Server酱 SendKey 页面](https://sct.ftqq.com/docs/getting-started/sendkey/) 获取。密钥只放 GitHub Secrets，不要写进代码。
 > QQ 邮箱需先在邮箱设置中开启 IMAP/SMTP 并生成授权码；项目使用 `smtp.qq.com:465` 发信，并通过 `imap.qq.com:993` 只清理带专用标记的过期项目邮件。
@@ -64,8 +74,9 @@ git push -u origin main
 
 | 日志现象 | 原因与处理 |
 |---|---|
-| `Run pipeline` 步骤红，提示缺 key | Secrets 名字拼错了，注意大小写：`LLM_API_KEY` |
-| LLM 超时/鉴权/解析失败 | 生成待审核资料卡但不冒充正式文章；检查 Secrets、余额和模型名 |
+| 未配置任何文字模型 Key | 至少配置 `LLM_API_KEY`、`DEEPSEEK_API_KEY`、`WORKBUDDY_API_KEY` 或 `QWEN_API_KEY` 之一 |
+| 日志显示某供应商“不可用并已熔断” | 正在自动切换下一供应商；检查对应 Key、额度、接口地域和模型权限 |
+| 所有文字模型均失败 | 生成待审核资料卡但不冒充正式文章；逐一检查 Secrets、余额、模型名和接口地址 |
 | `IMAGE_API_KEY 未配置` | 正常生成并推送文字版；需要图文版时添加图像密钥后重跑 |
 | 图像生成失败 | 自动降级为文字版；查看 `article.json` 的 `visuals.error`，检查图像模型权限、余额、超时和模型名 |
 | `WECHAT_SENDKEY 未配置` | 文章仍会生成，但不会推送；按阶段二配置 Secret 后重跑 |

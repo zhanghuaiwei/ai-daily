@@ -35,11 +35,23 @@ jobs:
 
       - name: Run pipeline
         env:
-          # 默认使用 OpenAI GPT-5.6 Terra；Secrets 仍可覆盖接口和模型。
+          # 文字模型故障转移：GPT → DeepSeek → WorkBuddy/TokenHub → 千问。
+          # 千问在代码中固定为最终兜底；未配置 API Key 的供应商自动跳过。
+          LLM_PROVIDER_ORDER: ${{ vars.LLM_PROVIDER_ORDER }}
+          # 兼容已有 GPT Secrets。
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
           LLM_REASONING_EFFORT: ${{ secrets.LLM_REASONING_EFFORT }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_BASE_URL: ${{ secrets.DEEPSEEK_BASE_URL }}
+          DEEPSEEK_MODEL: ${{ secrets.DEEPSEEK_MODEL }}
+          WORKBUDDY_API_KEY: ${{ secrets.WORKBUDDY_API_KEY }}
+          WORKBUDDY_BASE_URL: ${{ secrets.WORKBUDDY_BASE_URL }}
+          WORKBUDDY_MODEL: ${{ secrets.WORKBUDDY_MODEL }}
+          QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
+          QWEN_BASE_URL: ${{ secrets.QWEN_BASE_URL }}
+          QWEN_MODEL: ${{ secrets.QWEN_MODEL }}
           # 配图独立使用图像接口；默认模型由代码设为 gpt-image-2。
           IMAGE_API_KEY: ${{ secrets.IMAGE_API_KEY }}
           IMAGE_BASE_URL: ${{ secrets.IMAGE_BASE_URL }}

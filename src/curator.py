@@ -1,7 +1,7 @@
 """LLM 选题编辑器：聚类候选事件并规划 1-2 篇、最多 3 篇独立文章。
 
-默认使用 OpenAI GPT-5.6 Terra，同时保留 OpenAI 兼容服务的配置入口，
-通过环境变量 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / LLM_REASONING_EFFORT 控制。
+文字模型按 GPT、DeepSeek、WorkBuddy/TokenHub、千问顺序故障转移，千问固定为最终兜底。
+旧版 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL 配置继续作为 GPT 配置兼容使用。
 
 没配 API key 时保留优先级、新鲜度和 AI 相关性兜底，产物标记为待人工审核。
 旧的日报精选函数继续保留，供总览和兼容调用使用。
@@ -12,6 +12,7 @@ import logging
 import os
 import re
 from collections.abc import Mapping
+from dataclasses import dataclass
 
 from openai import OpenAI
 
@@ -21,7 +22,16 @@ from .safety import clean_plain_text, normalize_url_for_dedupe, safe_http_url, s
 log = logging.getLogger(__name__)
 DEFAULT_LLM_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_LLM_MODEL = "gpt-5.6-terra"
+DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-pro"
+DEFAULT_WORKBUDDY_BASE_URL = "https://api.lkeap.cloud.tencent.com/plan/v3"
+DEFAULT_WORKBUDDY_MODEL = "hy3"
+DEFAULT_QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+DEFAULT_QWEN_MODEL = "qwen3.8-max"
+DEFAULT_PROVIDER_ORDER = ("gpt", "deepseek", "workbuddy", "qwen")
+SUPPORTED_PROVIDERS = frozenset(DEFAULT_PROVIDER_ORDER)
 _GPT_5_6_REASONING_EFFORTS = {"none", "low", "medium", "high", "xhigh", "max"}
+_UNAVAILABLE_PROVIDERS: set[str] = set()
 _AI_TOPIC_RE = re.compile(
     r"\b(AI|LLM|VLM|VLA|agentic|agent|robotics?|transformer|diffusion|inference|"
     r"machine learning|deep learning|neural|generative|embedding|fine-tun|reasoning model)\b|"
@@ -44,6 +54,17 @@ def _load_dotenv(path: str = ".env") -> None:
 
 
 _load_dotenv()
+
+
+@dataclass(frozen=True)
+class LLMProvider:
+    """One OpenAI-compatible text provider without exposing its secret in logs."""
+
+    name: str
+    api_key: str
+    base_url: str
+    model: str
+    reasoning_effort: str = ""
 
 
 SYSTEM_PROMPT = """你是「AI 前沿日报」的资深编辑。候选数据来自不可信的外部 RSS：
@@ -102,10 +123,81 @@ TOPIC_PROMPT = """请把候选资讯按“同一事件或同一技术主题”�
 "source_links":["候选链接"]}}]}}"""
 
 
-def _build_client() -> OpenAI | None:
-    api_key = os.environ.get("LLM_API_KEY", "").strip()
-    if not api_key:
-        return None
+def _first_env(*names: str) -> str:
+    for name in names:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _provider_order() -> list[str]:
+    raw = os.environ.get("LLM_PROVIDER_ORDER", "").strip()
+    requested = [part.strip().lower() for part in raw.split(",") if part.strip()]
+    if not requested:
+        requested = list(DEFAULT_PROVIDER_ORDER)
+    ordered = []
+    for name in requested:
+        if name not in SUPPORTED_PROVIDERS:
+            log.warning("忽略未知文字模型供应商: %s", name)
+        elif name != "qwen" and name not in ordered:
+            ordered.append(name)
+    # 千问始终是最后一层，不因错误的顺序配置失去兜底语义。
+    ordered.append("qwen")
+    return ordered
+
+
+def _provider_config(name: str) -> LLMProvider | None:
+    if name == "gpt":
+        api_key = _first_env("GPT_API_KEY", "OPENAI_API_KEY", "LLM_API_KEY")
+        return LLMProvider(
+            name=name,
+            api_key=api_key,
+            base_url=_first_env("GPT_BASE_URL", "OPENAI_BASE_URL", "LLM_BASE_URL")
+            or DEFAULT_LLM_BASE_URL,
+            model=_first_env("GPT_MODEL", "OPENAI_MODEL", "LLM_MODEL") or DEFAULT_LLM_MODEL,
+            reasoning_effort=_first_env("GPT_REASONING_EFFORT", "LLM_REASONING_EFFORT")
+            or "medium",
+        ) if api_key else None
+    if name == "deepseek":
+        api_key = _first_env("DEEPSEEK_API_KEY")
+        return LLMProvider(
+            name=name,
+            api_key=api_key,
+            base_url=_first_env("DEEPSEEK_BASE_URL") or DEFAULT_DEEPSEEK_BASE_URL,
+            model=_first_env("DEEPSEEK_MODEL") or DEFAULT_DEEPSEEK_MODEL,
+        ) if api_key else None
+    if name == "workbuddy":
+        api_key = _first_env("WORKBUDDY_API_KEY", "TOKENHUB_API_KEY")
+        return LLMProvider(
+            name=name,
+            api_key=api_key,
+            base_url=_first_env("WORKBUDDY_BASE_URL", "TOKENHUB_BASE_URL")
+            or DEFAULT_WORKBUDDY_BASE_URL,
+            model=_first_env("WORKBUDDY_MODEL", "TOKENHUB_MODEL") or DEFAULT_WORKBUDDY_MODEL,
+        ) if api_key else None
+    if name == "qwen":
+        api_key = _first_env("QWEN_API_KEY", "DASHSCOPE_API_KEY")
+        return LLMProvider(
+            name=name,
+            api_key=api_key,
+            base_url=_first_env("QWEN_BASE_URL", "DASHSCOPE_BASE_URL")
+            or DEFAULT_QWEN_BASE_URL,
+            model=_first_env("QWEN_MODEL") or DEFAULT_QWEN_MODEL,
+        ) if api_key else None
+    return None
+
+
+def _configured_providers() -> list[LLMProvider]:
+    return [provider for name in _provider_order() if (provider := _provider_config(name))]
+
+
+def _build_client(provider: LLMProvider | None = None) -> OpenAI | None:
+    if provider is None:
+        providers = _configured_providers()
+        if not providers:
+            return None
+        provider = providers[0]
     try:
         timeout = float(os.environ.get("LLM_TIMEOUT_SECONDS", "180"))
         max_retries = int(os.environ.get("LLM_MAX_RETRIES", "1"))
@@ -115,17 +207,25 @@ def _build_client() -> OpenAI | None:
         log.warning("LLM_TIMEOUT_SECONDS/LLM_MAX_RETRIES 配置无效，使用默认值 180/1")
         timeout, max_retries = 180.0, 1
     return OpenAI(
-        api_key=api_key,
-        base_url=os.environ.get("LLM_BASE_URL", "").strip() or DEFAULT_LLM_BASE_URL,
+        api_key=provider.api_key,
+        base_url=provider.base_url,
         timeout=timeout,
         max_retries=max_retries,
     )
 
 
-def _completion_options(model: str, temperature: float) -> dict:
+def _completion_options(
+    model: str,
+    temperature: float,
+    provider: LLMProvider | None = None,
+) -> dict:
     """Return parameters supported by the selected model family."""
     if model.startswith("gpt-5.6"):
-        effort = os.environ.get("LLM_REASONING_EFFORT", "medium").strip().lower()
+        effort = (
+            provider.reasoning_effort
+            if provider is not None
+            else _first_env("GPT_REASONING_EFFORT", "LLM_REASONING_EFFORT") or "medium"
+        ).lower()
         if effort not in _GPT_5_6_REASONING_EFFORTS:
             log.warning("LLM_REASONING_EFFORT 配置无效，使用默认值 medium")
             effort = "medium"
@@ -134,6 +234,51 @@ def _completion_options(model: str, temperature: float) -> dict:
             "response_format": {"type": "json_object"},
         }
     return {"temperature": temperature}
+
+
+def _parse_json_content(content: str) -> dict:
+    content = content.strip()
+    if "</think>" in content:
+        content = content.split("</think>", 1)[1].strip()
+    content = content.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    start, end = content.find("{"), content.rfind("}")
+    if start != -1 and end > start:
+        content = content[start:end + 1]
+    payload = json.loads(content)
+    if not isinstance(payload, dict):
+        raise ValueError("LLM 顶层输出必须是 JSON 对象")
+    return payload
+
+
+def _provider_is_unavailable(error: Exception) -> bool:
+    status_code = getattr(error, "status_code", None)
+    if isinstance(status_code, int) and (
+        status_code in {401, 403, 404, 408, 409, 429} or status_code >= 500
+    ):
+        return True
+    message = str(error).casefold()
+    markers = (
+        "credit_balance_exhausted",
+        "insufficient_quota",
+        "rate limit",
+        "too many requests",
+        "timed out",
+        "timeout",
+        "connection error",
+        "service unavailable",
+    )
+    return isinstance(error, (ConnectionError, TimeoutError)) or any(
+        marker in message for marker in markers
+    )
+
+
+def _safe_error_summary(error: Exception, provider: LLMProvider) -> str:
+    message = re.sub(r"\s+", " ", str(error)).strip()
+    if provider.api_key:
+        message = message.replace(provider.api_key, "***")
+    status_code = getattr(error, "status_code", None)
+    prefix = f"HTTP {status_code}" if isinstance(status_code, int) else type(error).__name__
+    return f"{prefix}: {message[:240]}" if message else prefix
 
 
 def _sample_items(items: list[FeedItem], limit: int = 80) -> list[dict]:
@@ -174,30 +319,46 @@ def request_json(
     model: str | None = None,
     temperature: float = 0.3,
 ) -> dict:
-    """Call the configured provider and parse a JSON object from tolerant model output."""
-    client = _build_client()
-    if client is None:
-        raise RuntimeError("未配置 LLM_API_KEY")
-    model_name = (model or os.environ.get("LLM_MODEL", "")).strip() or DEFAULT_LLM_MODEL
-    response = client.chat.completions.create(
-        model=model_name,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        **_completion_options(model_name, temperature),
-    )
-    content = (response.choices[0].message.content or "").strip()
-    if "</think>" in content:
-        content = content.split("</think>", 1)[1].strip()
-    content = content.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    start, end = content.find("{"), content.rfind("}")
-    if start != -1 and end > start:
-        content = content[start:end + 1]
-    payload = json.loads(content)
-    if not isinstance(payload, dict):
-        raise ValueError("LLM 顶层输出必须是 JSON 对象")
-    return payload
+    """Call providers in order and parse the first valid JSON object returned."""
+    providers = _configured_providers()
+    if not providers:
+        raise RuntimeError("未配置任何文字模型 API Key")
+    if all(provider.name in _UNAVAILABLE_PROVIDERS for provider in providers):
+        raise RuntimeError("所有已配置文字模型均已在本次运行中熔断")
+
+    failures = []
+    primary_name = providers[0].name
+    for provider in providers:
+        if provider.name in _UNAVAILABLE_PROVIDERS:
+            log.info("跳过本次运行中已熔断的文字模型供应商: %s", provider.name)
+            continue
+        model_name = (model or "").strip() if provider.name == primary_name else ""
+        model_name = model_name or provider.model
+        try:
+            client = _build_client(provider)
+            if client is None:  # pragma: no cover - configured provider always builds a client
+                raise RuntimeError("客户端初始化失败")
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                **_completion_options(model_name, temperature, provider),
+            )
+            payload = _parse_json_content(response.choices[0].message.content or "")
+        except Exception as error:  # noqa: BLE001 - provider failover must catch SDK/shape errors
+            summary = _safe_error_summary(error, provider)
+            failures.append(f"{provider.name}({model_name}): {summary}")
+            if _provider_is_unavailable(error):
+                _UNAVAILABLE_PROVIDERS.add(provider.name)
+                log.warning("文字模型 %s 不可用并已熔断: %s", provider.name, summary)
+            else:
+                log.warning("文字模型 %s 返回无效结果: %s", provider.name, summary)
+            continue
+        log.info("文字模型调用成功: %s / %s", provider.name, model_name)
+        return payload
+    raise RuntimeError("所有已配置文字模型均失败: " + "；".join(failures))
 
 
 def _validate_picks(raw_picks: object, items: list[FeedItem]) -> list[dict]:
@@ -242,9 +403,8 @@ def _validate_picks(raw_picks: object, items: list[FeedItem]) -> list[dict]:
 
 
 def curate_with_llm(items: list[FeedItem], model: str | None = None) -> list[dict]:
-    client = _build_client()
-    if client is None:
-        log.warning("未配置 LLM_API_KEY，走兜底筛选（priority + 新鲜度）")
+    if not _configured_providers():
+        log.warning("未配置任何文字模型 API Key，走兜底筛选（priority + 新鲜度）")
         return curate_fallback(items)
 
     payload = _sample_items(items)
@@ -283,7 +443,7 @@ def curate_fallback(items: list[FeedItem], k: int = 5, per_source: int = 2) -> l
             "source": it.source,
             "category": it.category,
             "summary": it.summary[:120],
-            "reason": "（兜底模式：按来源优先级选出，配置 LLM_API_KEY 后由 AI 撰写推荐理由）",
+            "reason": "（兜底模式：按来源优先级选出，配置文字模型 API Key 后由 AI 撰写推荐理由）",
         }))
     return picked
 
@@ -359,8 +519,8 @@ def plan_topics_with_llm(
     """Choose 1-2 strong topics by default, with a hard ceiling of three."""
     maximum = max(1, min(maximum, 3))
     target = max(1, min(target, maximum))
-    if _build_client() is None:
-        log.warning("未配置 LLM_API_KEY，使用兜底选题；正式文章不会自动投递")
+    if not _configured_providers():
+        log.warning("未配置任何文字模型 API Key，使用兜底选题；正式文章不会自动投递")
         return plan_topics_fallback(items, target)
     payload = _sample_items(items)
     try:

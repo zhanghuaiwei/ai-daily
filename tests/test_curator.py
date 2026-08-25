@@ -5,6 +5,25 @@ import pytest
 import src.curator as curator
 from src.fetcher import FeedItem
 
+_PROVIDER_ENV_VARS = (
+    "LLM_PROVIDER_ORDER",
+    "GPT_API_KEY",
+    "OPENAI_API_KEY",
+    "LLM_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "WORKBUDDY_API_KEY",
+    "TOKENHUB_API_KEY",
+    "QWEN_API_KEY",
+    "DASHSCOPE_API_KEY",
+)
+
+
+@pytest.fixture(autouse=True)
+def isolate_provider_state(monkeypatch):
+    for name in _PROVIDER_ENV_VARS:
+        monkeypatch.delenv(name, raising=False)
+    curator._UNAVAILABLE_PROVIDERS.clear()
+
 
 def make_item(
     title: str,
@@ -88,7 +107,8 @@ def test_openai_defaults_are_used_when_optional_values_are_empty(monkeypatch):
 
 def test_request_json_uses_gpt_5_6_structured_output_options(monkeypatch):
     completions = RecordingCompletions('{"result": "ok"}')
-    monkeypatch.setattr(curator, "_build_client", lambda: fake_client(completions))
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setattr(curator, "_build_client", lambda _provider=None: fake_client(completions))
     monkeypatch.setenv("LLM_MODEL", "")
     monkeypatch.setenv("LLM_REASONING_EFFORT", "medium")
 
@@ -101,7 +121,8 @@ def test_request_json_uses_gpt_5_6_structured_output_options(monkeypatch):
 
 def test_non_gpt_5_6_provider_keeps_temperature(monkeypatch):
     completions = RecordingCompletions('{"result": "ok"}')
-    monkeypatch.setattr(curator, "_build_client", lambda: fake_client(completions))
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setattr(curator, "_build_client", lambda _provider=None: fake_client(completions))
 
     curator.request_json("system", "user", model="compatible-model", temperature=0.2)
     assert completions.kwargs["temperature"] == 0.2
@@ -110,16 +131,22 @@ def test_non_gpt_5_6_provider_keeps_temperature(monkeypatch):
 
 def test_transport_error_degrades_to_fallback(monkeypatch):
     items = [make_item("new", "A", 2), make_item("old", "A", 1)]
-    monkeypatch.setattr(curator, "_build_client", lambda: fake_client(RaisingCompletions()))
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setattr(
+        curator,
+        "_build_client",
+        lambda _provider=None: fake_client(RaisingCompletions()),
+    )
     assert [pick["title"] for pick in curator.curate_with_llm(items)] == ["new", "old"]
 
 
 def test_invalid_response_shape_degrades_to_fallback(monkeypatch):
     items = [make_item("new", "A", 2), make_item("old", "B", 1)]
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
     monkeypatch.setattr(
         curator,
         "_build_client",
-        lambda: fake_client(ContentCompletions('{"picks": "not-a-list"}')),
+        lambda _provider=None: fake_client(ContentCompletions('{"picks": "not-a-list"}')),
     )
     assert [pick["title"] for pick in curator.curate_with_llm(items)] == ["new", "old"]
 
@@ -197,3 +224,76 @@ def test_fallback_prioritizes_ai_relevance_before_source_priority():
     ]
     picks = curator.curate_fallback(items, k=1)
     assert picks[0]["title"] == "New reasoning model for agents"
+
+
+def test_qwen_is_always_the_last_configured_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER_ORDER", "qwen,deepseek,gpt,workbuddy")
+    monkeypatch.setenv("LLM_API_KEY", "gpt-key")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-key")
+    monkeypatch.setenv("WORKBUDDY_API_KEY", "workbuddy-key")
+    monkeypatch.setenv("QWEN_API_KEY", "qwen-key")
+
+    assert [provider.name for provider in curator._configured_providers()] == [
+        "deepseek",
+        "gpt",
+        "workbuddy",
+        "qwen",
+    ]
+
+
+class FakeQuotaError(Exception):
+    status_code = 429
+
+
+class CountingCompletions:
+    def __init__(self, content: str | None = None, error: Exception | None = None):
+        self.content = content
+        self.error = error
+        self.calls = 0
+
+    def create(self, **_kwargs):
+        self.calls += 1
+        if self.error is not None:
+            raise self.error
+        message = SimpleNamespace(content=self.content)
+        return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+
+
+def test_quota_failure_switches_provider_and_opens_circuit(monkeypatch):
+    providers = [
+        curator.LLMProvider("gpt", "gpt-key", "https://gpt.example/v1", "gpt-5.6-terra"),
+        curator.LLMProvider("qwen", "qwen-key", "https://qwen.example/v1", "qwen-model"),
+    ]
+    gpt = CountingCompletions(error=FakeQuotaError("insufficient_quota"))
+    qwen = CountingCompletions(content='{"result": "千问兜底成功"}')
+    clients = {"gpt": fake_client(gpt), "qwen": fake_client(qwen)}
+    monkeypatch.setattr(curator, "_configured_providers", lambda: providers)
+    monkeypatch.setattr(curator, "_build_client", lambda provider=None: clients[provider.name])
+
+    assert curator.request_json("system", "user") == {"result": "千问兜底成功"}
+    assert curator.request_json("system", "user") == {"result": "千问兜底成功"}
+    assert gpt.calls == 1
+    assert qwen.calls == 2
+    assert "gpt" in curator._UNAVAILABLE_PROVIDERS
+
+
+def test_invalid_json_tries_the_next_provider_without_opening_circuit(monkeypatch):
+    providers = [
+        curator.LLMProvider("deepseek", "ds-key", "https://ds.example", "deepseek-model"),
+        curator.LLMProvider("qwen", "qwen-key", "https://qwen.example", "qwen-model"),
+    ]
+    deepseek = CountingCompletions(content="not-json")
+    qwen = CountingCompletions(content='{"result": "ok"}')
+    clients = {"deepseek": fake_client(deepseek), "qwen": fake_client(qwen)}
+    monkeypatch.setattr(curator, "_configured_providers", lambda: providers)
+    monkeypatch.setattr(curator, "_build_client", lambda provider=None: clients[provider.name])
+
+    assert curator.request_json("system", "user") == {"result": "ok"}
+    assert "deepseek" not in curator._UNAVAILABLE_PROVIDERS
+
+
+def test_provider_error_summary_redacts_api_key():
+    provider = curator.LLMProvider("qwen", "secret-key", "https://qwen.example", "qwen")
+    summary = curator._safe_error_summary(RuntimeError("bad secret-key request"), provider)
+    assert "secret-key" not in summary
+    assert "***" in summary
