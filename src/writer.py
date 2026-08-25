@@ -29,12 +29,31 @@ REQUIRED_REVIEW_DIMENSIONS = {
     "timeliness",
     "frontier",
     "accuracy",
+    "topic_focus",
+    "logic",
     "structure",
     "readability",
     "chinese_style",
     "human_style",
     "headline",
 }
+CRITICAL_REVIEW_THRESHOLDS = {
+    "topic_focus": 85,
+    "logic": 85,
+    "structure": 85,
+    "headline": 85,
+}
+MIN_REVIEW_TOTAL = 85
+MIN_HEADLINE_SCORE = 85
+_CLICKBAIT_TITLE_PHRASES = (
+    "震惊",
+    "彻底",
+    "史诗级",
+    "杀疯了",
+    "颠覆一切",
+    "必须知道",
+    "不看后悔",
+)
 _ENGLISH_GLOSS_RE = re.compile(r"[\u4e00-\u9fff]{2,}[（(]([A-Za-z][A-Za-z ._-]{1,50})[)）]")
 _ALLOWED_TECH_GLOSSES = {
     "ai",
@@ -78,15 +97,19 @@ WRITE_PROMPT = """请根据调研卡写一篇可供编辑审核的中文公众�
 
 公众号文章标准：
 - 一个话题只写一篇，不拼接无关新闻；
+- 写作前先用一句话确定全文唯一的中心命题，正文中的每个章节都必须直接服务于这个命题；
 - 开头直接从事实、冲突、问题或具体场景切入，不使用宏大时代背景；
 - 结构为：切入 → 背景问题 → 核心技术 → 实际影响 → 局限/争议 → 读者建议 → 收束；
-- 段落之间要有自然过渡，句式长短有变化，避免连续排比、套路小标题和重复总结；
+- 每一节只承担一个清晰作用，前一节提出的问题要在后文得到解释，事实、分析和结论之间不能跳步；
+- 段落和章节之间要有自然过渡，句式长短有变化，避免连续排比、套路小标题和重复总结；
 - 不使用“值得注意的是、综上所述、让我们拭目以待、赋能、颠覆性变革”等 AI 腔套话；
 - 事实段落填写 source_ids；观点必须明确写成判断或推测；
 - 不编造采访、体验、数据或引用原话。
 
-标题 A/B 测试：给出 5 个自然中文标题，覆盖信息型、问题型、影响型等角度；不标题党，
-不使用“震惊、彻底、史诗级、杀疯了”等词。score 按准确性、具体性、读者收益和传播力综合评分。
+标题 A/B 测试：给出 5 个自然中文标题，覆盖信息型、问题型、影响型等角度。标题要让泛读者一眼看出
+“谁或什么发生了哪项新变化，以及为什么值得点开”，优先使用具体主体、关键矛盾、意外结果或实际影响，
+避免“一个重大变化”“你需要知道”等空泛表达；不标题党，不使用“震惊、彻底、史诗级、杀疯了”等词。
+score 按准确性、具体性、读者收益和传播力综合评分，低于 85 分的标题不得选为 selected_title。
 
 配图策划：给出 1 张封面方案，并根据文章实际需要规划 0-5 张正文插图。没有内容值得可视化时可以是 0 张；
 短文通常 1-2 张，中等篇幅通常 2-3 张，长文最多 5 张，不为凑数配图。配图必须服务于理解，而不是泛泛的
@@ -112,10 +135,14 @@ EDIT_PROMPT = """你是公众号终审编辑。请对文章进行扩写、润色
 2. 补齐必要背景与章节过渡，让泛读者读得懂，但不要把普通词汇翻译成英文；
 3. 技术名词、模型名、论文名、API 和代码可保留英文，其余尽量使用自然中文；
 4. 所有具体事实和数字必须能追溯到 source_ids；证据不足就降低语气或删除；
-5. 文章长度接近 {target_chars} 个中文字符，保留 4-8 个有信息量的小节；
-6. 重做标题评分，selected_title 必须是候选中得分最高且与正文最一致的标题；
-7. 逐项检查实时性、前沿性、事实可靠性、结构、可读性、中文表达、AI 味和标题质量。
-8. 终审配图方案：保留 1 张封面，并按内容需要保留 0-5 张正文插图；不为凑数配图，
+5. 用一句话概括全文中心命题；删掉偏离命题的材料，确保读者读完能清楚复述文章究竟在讲什么；
+6. 检查论证链：问题、证据、解释、影响、局限和结论必须前后衔接，不能把相关性写成因果关系；
+7. 文章长度接近 {target_chars} 个中文字符，保留 4-8 个职责明确、标题不重复的小节；
+8. 重做标题评分，selected_title 必须是候选中得分最高且与正文最一致的标题；标题应包含具体主体和
+   关键变化、矛盾或读者收益，引人注意但不夸张，最高分低于 85 时应继续重写；
+9. 逐项检查实时性、前沿性、事实可靠性、主题聚焦、逻辑、结构、可读性、中文表达、AI 味和标题质量。
+   topic_focus、logic、structure、headline 任一项低于 85 分，都必须在 issues 中说明，不得虚报分数；
+10. 终审配图方案：保留 1 张封面，并按内容需要保留 0-5 张正文插图；不为凑数配图，
    每张正文图放在不同且最相关的章节后；禁止图中文字、标志、水印、虚构界面和伪造现场。
 
 <draft_and_material>
@@ -130,7 +157,8 @@ EDIT_PROMPT = """你是公众号终审编辑。请对文章进行扩写、润色
 "visual_plan":{{"cover":{{"concept":"封面视觉构想","alt":"封面图中文说明"}},
 "illustrations":[{{"after_section":2,"concept":"正文插图视觉构想","alt":"正文插图中文说明"}}]}}}},
 "review":{{"total":88,"dimensions":{{"timeliness":90,"frontier":88,"accuracy":90,
-"structure":86,"readability":90,"chinese_style":90,"human_style":86,"headline":88}},
+"topic_focus":90,"logic":88,"structure":86,"readability":90,"chinese_style":90,
+"human_style":86,"headline":88}},
 "issues":["仍需人工关注的问题"],"fact_check":"pass|needs_review"}}}}"""
 
 
@@ -414,6 +442,7 @@ def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> d
     latin = len(re.findall(r"[A-Za-z]", body))
     chinese_ratio = chinese / max(chinese + latin, 1)
     title = article.get("selected_title", "")
+    title_length = len(re.sub(r"\s+", "", title))
     title_chinese = len(re.findall(r"[\u4e00-\u9fff]", title))
     title_latin = len(re.findall(r"[A-Za-z]", title))
     title_chinese_ratio = title_chinese / max(title_chinese + title_latin, 1)
@@ -430,6 +459,26 @@ def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> d
     dimension_gate = REQUIRED_REVIEW_DIMENSIONS <= set(dimensions) and all(
         dimensions[name] >= 75 for name in REQUIRED_REVIEW_DIMENSIONS
     )
+    headings = [section.get("heading", "").strip() for section in article.get("sections", [])]
+    unique_headings = len(headings) == len(set(headings))
+    title_scores = [
+        item.get("score", 0)
+        for item in article.get("title_candidates", [])
+        if isinstance(item.get("score"), int)
+    ]
+    best_title_score = max(title_scores, default=0)
+    selected_title_score = next(
+        (
+            item.get("score", 0)
+            for item in article.get("title_candidates", [])
+            if item.get("title") == title and isinstance(item.get("score"), int)
+        ),
+        0,
+    )
+    critical_dimensions = {
+        name: dimensions.get(name, 0) >= minimum
+        for name, minimum in CRITICAL_REVIEW_THRESHOLDS.items()
+    }
     abstract_count = len(re.sub(r"\s+", "", article.get("abstract", "")))
     checks = {
         "length": int(target_chars * 0.65) <= char_count <= int(target_chars * 1.6),
@@ -440,9 +489,18 @@ def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> d
         "no_unnecessary_english_gloss": not english_glosses,
         "citations": citation_ratio >= 0.25,
         "structure": 4 <= len(article.get("sections", [])) <= 8,
+        "topic_focus": critical_dimensions["topic_focus"],
+        "logical_flow": critical_dimensions["logic"],
+        "clear_structure": critical_dimensions["structure"] and unique_headings,
         "headline_ab": len(article.get("title_candidates", [])) >= 3,
+        "headline_quality": (
+            critical_dimensions["headline"]
+            and selected_title_score == best_title_score >= MIN_HEADLINE_SCORE
+            and 8 <= title_length <= 40
+            and not any(phrase in title for phrase in _CLICKBAIT_TITLE_PHRASES)
+        ),
         "model_review": (
-            review.get("total", 0) >= 80
+            review.get("total", 0) >= MIN_REVIEW_TOTAL
             and review.get("fact_check") == "pass"
             and dimension_gate
         ),
@@ -451,6 +509,7 @@ def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> d
         "char_count": char_count,
         "chinese_ratio": round(chinese_ratio, 3),
         "title_chinese_ratio": round(title_chinese_ratio, 3),
+        "headline_score": selected_title_score,
         "citation_ratio": round(citation_ratio, 3),
         "ai_phrases": ai_phrases,
         "unnecessary_english_glosses": english_glosses,

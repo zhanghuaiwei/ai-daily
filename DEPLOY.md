@@ -108,7 +108,7 @@ git push -u origin main
 - **改每日篇数**：pipeline 命令使用 `--articles 1` 到 `--articles 3`
 - **改目标篇幅**：pipeline 命令使用 `--target-chars 1600` 等参数
 - **调选题标准**：`src/curator.py` 的 `TOPIC_PROMPT`
-- **调写作与去 AI 味**：`src/writer.py` 的提示词和 `article_metrics`
+- **调写作与去 AI 味**：`src/writer.py` 的提示词和 `article_metrics`；最终推送还要求主题聚焦、逻辑、结构和标题质量四项均不低于 85 分
 - **调封面/插图风格**：`src/illustrator.py`；图像质量由 `IMAGE_QUALITY` 控制
 - **改排版样式**：`templates/article.html`
 - **调整抓取时间窗**：`.github/workflows/daily-digest.yml` 里给 pipeline 命令加 `--window-hours 48`

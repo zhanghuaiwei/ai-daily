@@ -46,6 +46,8 @@ def passing_review():
             "timeliness": 90,
             "frontier": 88,
             "accuracy": 92,
+            "topic_focus": 90,
+            "logic": 88,
             "structure": 88,
             "readability": 90,
             "chinese_style": 90,
@@ -72,6 +74,40 @@ def test_article_metrics_enforce_quality_gate():
     article["lead"] = "随着人工智能的快速发展，让我们拭目以待。"
     metrics = writer.article_metrics(article, review, target_chars=2_000)
     assert metrics["checks"]["human_style"] is False
+
+
+def test_article_metrics_require_focused_logical_and_clear_structure():
+    article = writer._sanitize_article(valid_article(), evidence())
+    review = writer._sanitize_review(passing_review())
+
+    for dimension, check in (
+        ("topic_focus", "topic_focus"),
+        ("logic", "logical_flow"),
+        ("structure", "clear_structure"),
+    ):
+        failing_review = {**review, "dimensions": {**review["dimensions"], dimension: 84}}
+        metrics = writer.article_metrics(article, failing_review, target_chars=2_000)
+        assert metrics["checks"][check] is False
+        assert metrics["publishable"] is False
+
+    article["sections"][1]["heading"] = article["sections"][0]["heading"]
+    metrics = writer.article_metrics(article, review, target_chars=2_000)
+    assert metrics["checks"]["clear_structure"] is False
+
+
+def test_article_metrics_require_an_attractive_but_not_clickbait_headline():
+    article = writer._sanitize_article(valid_article(), evidence())
+    review = writer._sanitize_review(passing_review())
+
+    article["title_candidates"][0]["score"] = 84
+    metrics = writer.article_metrics(article, review, target_chars=2_000)
+    assert metrics["checks"]["headline_quality"] is False
+
+    article = writer._sanitize_article(valid_article(), evidence())
+    article["selected_title"] = "震惊：技术进展背后的真正变化"
+    article["title_candidates"][0]["title"] = article["selected_title"]
+    metrics = writer.article_metrics(article, review, target_chars=2_000)
+    assert metrics["checks"]["headline_quality"] is False
 
 
 def test_article_sanitization_keeps_text_when_visual_plan_is_incomplete():
