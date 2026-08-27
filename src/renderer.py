@@ -75,7 +75,7 @@ def render_article_markdown(bundle: dict, date: str) -> str:
         "",
         "---",
         "",
-        f"<sub>资料整理日期：{date}｜内容由 AI 辅助整理，发布前请人工核验事实。</sub>",
+        f"<sub>资料整理日期：{date}</sub>",
     ]
     return "\n".join(lines) + "\n"
 

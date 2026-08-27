@@ -138,6 +138,16 @@ def test_non_gpt_5_6_provider_keeps_temperature(monkeypatch):
     assert "reasoning_effort" not in completions.kwargs
 
 
+def test_qwen_disables_thinking_and_bounds_output(monkeypatch):
+    completions = RecordingCompletions('{"result": "ok"}')
+    monkeypatch.setenv("QWEN_API_KEY", "qwen-key")
+    monkeypatch.setattr(curator, "_build_client", lambda _provider=None: fake_client(completions))
+
+    curator.request_json("system", "user", max_output_tokens=1_200)
+    assert completions.kwargs["extra_body"] == {"enable_thinking": False}
+    assert completions.kwargs["max_tokens"] == 1_200
+
+
 def test_transport_error_degrades_to_fallback(monkeypatch):
     items = [make_item("new", "A", 2), make_item("old", "A", 1)]
     monkeypatch.setenv("LLM_API_KEY", "test-key")

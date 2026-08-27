@@ -105,13 +105,27 @@ def test_fallback_article_is_not_delivery_ready():
     assert bundle["review"]["fact_check"] == "needs_review"
 
 
+def test_write_article_uses_source_excerpt_in_one_bounded_request(monkeypatch):
+    topic = {"working_title": "话题", "angle": "角度", "reason": "理由", "evidence": evidence()}
+    topic["evidence"][0]["excerpt"] = "只能依据的来源正文"
+    captured = {}
+
+    def fake_request(_system, prompt, **kwargs):
+        captured["prompt"] = prompt
+        captured.update(kwargs)
+        return valid_article()
+
+    monkeypatch.setattr(writer, "request_json", fake_request)
+    article = writer.write_article(topic, target_chars=2_000)
+    assert article["selected_title"]
+    assert "只能依据的来源正文" in captured["prompt"]
+    assert captured["max_output_tokens"] == 6_000
+
+
 def test_produce_article_is_delivery_ready_even_when_diagnostic_fails(monkeypatch):
     topic = {"working_title": "话题", "angle": "角度", "reason": "理由", "evidence": evidence()}
     article = writer._sanitize_article(valid_article(), evidence())
-    failing_review = writer._sanitize_review({"issues": ["需要人工留意"]})
-    monkeypatch.setattr(writer, "build_research_brief", lambda *_args, **_kwargs: {"facts": []})
-    monkeypatch.setattr(writer, "write_draft", lambda *_args, **_kwargs: article)
-    monkeypatch.setattr(writer, "edit_and_review", lambda *_args, **_kwargs: (article, failing_review))
+    monkeypatch.setattr(writer, "write_article", lambda *_args, **_kwargs: article)
     bundle = writer.produce_article(topic, target_chars=2_000)
     assert bundle["delivery_ready"] is True
     assert bundle["metrics"]["quality_passed"] is False
@@ -121,7 +135,7 @@ def test_produce_article_raises_when_no_complete_draft_exists(monkeypatch):
     topic = {"working_title": "话题", "angle": "角度", "reason": "理由", "evidence": evidence()}
     monkeypatch.setattr(
         writer,
-        "build_research_brief",
+        "write_article",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("provider down")),
     )
     with pytest.raises(writer.ArticleGenerationError, match="provider down"):

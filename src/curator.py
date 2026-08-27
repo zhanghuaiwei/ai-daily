@@ -254,6 +254,7 @@ def _completion_options(
     model: str,
     temperature: float,
     provider: LLMProvider | None = None,
+    max_output_tokens: int | None = None,
 ) -> dict:
     """Return parameters supported by the selected model family."""
     if model.startswith("gpt-5.6"):
@@ -265,11 +266,21 @@ def _completion_options(
         if effort not in _GPT_5_6_REASONING_EFFORTS:
             log.warning("LLM_REASONING_EFFORT 配置无效，使用默认值 medium")
             effort = "medium"
-        return {
+        options = {
             "reasoning_effort": effort,
             "response_format": {"type": "json_object"},
         }
-    return {"temperature": temperature}
+        if max_output_tokens is not None:
+            options["max_completion_tokens"] = max_output_tokens
+        return options
+    options = {"temperature": temperature}
+    if max_output_tokens is not None:
+        options["max_tokens"] = max_output_tokens
+    if provider is not None and provider.name == "qwen":
+        # Qwen's OpenAI-compatible API otherwise may spend minutes on hidden reasoning.
+        # These jobs need one bounded editorial result, not a visible chain of thought.
+        options["extra_body"] = {"enable_thinking": False}
+    return options
 
 
 def _parse_json_content(content: str) -> dict:
@@ -354,6 +365,7 @@ def request_json(
     user_prompt: str,
     model: str | None = None,
     temperature: float = 0.3,
+    max_output_tokens: int | None = None,
 ) -> dict:
     """Call providers in order and parse the first valid JSON object returned."""
     providers = _configured_providers()
@@ -380,7 +392,12 @@ def request_json(
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                **_completion_options(model_name, temperature, provider),
+                **_completion_options(
+                    model_name,
+                    temperature,
+                    provider,
+                    max_output_tokens=max_output_tokens,
+                ),
             )
             payload = _parse_json_content(response.choices[0].message.content or "")
         except Exception as error:  # noqa: BLE001 - provider failover must catch SDK/shape errors
@@ -611,6 +628,7 @@ def plan_topics_with_llm(
             ),
             model=model,
             temperature=0.2,
+            max_output_tokens=1_200,
         )
         topics = _validate_topics(
             result["topics"],

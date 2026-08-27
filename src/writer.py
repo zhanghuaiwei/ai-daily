@@ -1,16 +1,14 @@
-"""Research, write, edit and quality-gate one Chinese public-account article per topic."""
+"""Write one final Chinese public-account article from a bounded evidence pack."""
 
 from __future__ import annotations
 
 import json
-import logging
 import re
 from collections.abc import Mapping
 
 from .curator import SYSTEM_PROMPT, request_json
 from .safety import clean_plain_text
 
-log = logging.getLogger(__name__)
 AI_TASTE_PHRASES = (
     "随着人工智能的快速发展",
     "在这个日新月异的时代",
@@ -85,27 +83,13 @@ _ALLOWED_TECH_GLOSSES = {
 class ArticleGenerationError(RuntimeError):
     """Raised when no complete daily article can be produced."""
 
-RESEARCH_PROMPT = """请基于下面的选题和证据包，制作写作前的事实调研卡。
+WRITE_PROMPT = """请根据下面的选题和证据包，直接写成一篇完成编辑、可以发布的中文公众号文章。
 
-要求：
-- 只使用证据包中的信息，不得用记忆补造数字、结论、机构表态或时间；
-- 区分已证实事实、来源方自述、合理推断和仍不确定的信息；
-- 每条事实必须填写支持它的 source_ids；
-- 找出泛读者真正会问的问题，以及文章需要解释的技术概念；
-- 技术概念优先用中文解释，只保留必要的模型名、论文名、API、代码或行业术语；
-- 证据互相冲突或不足时写入 uncertainties，不要替来源下结论。
-
-<topic_and_evidence>
-{payload}
-</topic_and_evidence>
-
-只输出严格 JSON：
-{{"facts":[{{"claim":"事实或带归属的来源方说法","source_ids":[1],"certainty":"confirmed|claimed|inferred"}}],
-"uncertainties":["尚不能确认的内容"],"reader_questions":["读者关心的问题"],
-"key_terms":[{{"term":"必要技术术语","explanation_cn":"简洁中文解释"}}],
-"recommended_structure":["建议章节"]}}"""
-
-WRITE_PROMPT = """请根据调研卡写一篇可供编辑审核的中文公众号文章初稿。
+事实边界：
+- 只使用证据包中的信息，不得用记忆补造数字、结论、机构表态、时间、采访、体验或引用原话；
+- 区分已证实事实、来源方自述、合理推断和未知信息；证据不足时降低语气或明确写出不确定性；
+- 每个事实段落填写 source_ids；观点必须明确写成分析或判断；
+- 写作前在内部完成事实整理，输出时不要展示思考过程、调研卡、写作提纲或自我评价。
 
 受众与篇幅：
 - 面向泛读者，不假设读者有专业背景；目标正文约 {target_chars} 个中文字符；
@@ -114,14 +98,14 @@ WRITE_PROMPT = """请根据调研卡写一篇可供编辑审核的中文公众�
 
 公众号文章标准：
 - 一个话题只写一篇，不拼接无关新闻；
-- 写作前先用一句话确定全文唯一的中心命题，正文中的每个章节都必须直接服务于这个命题；
+- 在内部先确定全文唯一的中心命题，正文中的每个章节都必须直接服务于这个命题；
 - 开头直接从事实、冲突、问题或具体场景切入，不使用宏大时代背景；
 - 结构为：切入 → 背景问题 → 核心技术 → 实际影响 → 局限/争议 → 读者建议 → 收束；
 - 每一节只承担一个清晰作用，前一节提出的问题要在后文得到解释，事实、分析和结论之间不能跳步；
 - 段落和章节之间要有自然过渡，句式长短有变化，避免连续排比、套路小标题和重复总结；
 - 不使用“值得注意的是、综上所述、让我们拭目以待、赋能、颠覆性变革”等 AI 腔套话；
-- 事实段落填写 source_ids；观点必须明确写成判断或推测；
-- 不编造采访、体验、数据或引用原话。
+- 写完后在内部做一次终审，删去空洞判断、机械排比、模板化过渡、宣传腔和偏离中心命题的内容；
+- 最终只输出文章，不要提及 AI 写作、提示词、模型、终审或质量评分。
 
 标题 A/B 测试：给出 5 个有点击冲动的自然中文标题，覆盖悬念型、冲突型、问题型和影响型。
 允许适度“标题党”，可以使用问句、反差、强冲突和意外结果吸引注意，但标题中的主体、变化和结论必须能被
@@ -134,39 +118,9 @@ score 按准确性、具体性、读者收益和传播力综合评分，selected
 
 只输出严格 JSON：
 {{"title_candidates":[{{"title":"标题","angle":"测试角度","score":88}}],
-"abstract":"80-120字摘要","lead":"开头段",
+"selected_title":"候选中分数最高的标题","abstract":"80-120字摘要","lead":"开头段",
 "sections":[{{"heading":"中文小标题","paragraphs":[{{"text":"段落","source_ids":[1]}}]}}],
 "conclusion":"自然收束，不喊口号"}}"""
-
-EDIT_PROMPT = """你是公众号终审编辑。请对文章进行扩写、润色和结构修订，并完成质量自检。
-
-编辑目标：
-1. 删除 AI 味：空洞判断、机械排比、重复总结、模板化过渡、夸张宣传和假装亲历；
-2. 补齐必要背景与章节过渡，让泛读者读得懂，但不要把普通词汇翻译成英文；
-3. 技术名词、模型名、论文名、API 和代码可保留英文，其余尽量使用自然中文；
-4. 所有具体事实和数字必须能追溯到 source_ids；证据不足就降低语气或删除；
-5. 用一句话概括全文中心命题；删掉偏离命题的材料，确保读者读完能清楚复述文章究竟在讲什么；
-6. 检查论证链：问题、证据、解释、影响、局限和结论必须前后衔接，不能把相关性写成因果关系；
-7. 文章长度接近 {target_chars} 个中文字符，保留 4-8 个职责明确、标题不重复的小节；
-8. 重做标题评分，selected_title 必须是候选中最吸引人且与正文一致的标题；允许问句、悬念、反差和
-   适度“标题党”，但标题中的事实、主体和结论不得夸大或虚构；
-9. 逐项检查实时性、前沿性、事实可靠性、主题聚焦、逻辑、结构、可读性、中文表达、AI 味和标题质量。
-   topic_focus、logic、structure、headline 任一项低于 85 分，都必须在 issues 中说明，不得虚报分数；
-10. 输出只服务于 Markdown 公众号文章，段落短而有节奏，小标题清楚，重点信息前置。
-
-<draft_and_material>
-{payload}
-</draft_and_material>
-
-只输出严格 JSON，article 的结构必须与初稿相同，并额外给出 selected_title：
-{{"article":{{"title_candidates":[{{"title":"标题","angle":"角度","score":90}}],
-"selected_title":"最终标题","abstract":"摘要","lead":"开头",
-"sections":[{{"heading":"小标题","paragraphs":[{{"text":"段落","source_ids":[1]}}]}}],
-"conclusion":"结尾"}},
-"review":{{"total":88,"dimensions":{{"timeliness":90,"frontier":88,"accuracy":90,
-"topic_focus":90,"logic":88,"structure":86,"readability":90,"chinese_style":90,
-"human_style":86,"headline":88}},
-"issues":["仍需人工关注的问题"],"fact_check":"pass|needs_review"}}}}"""
 
 
 def _source_ids(evidence: list[dict]) -> set[int]:
@@ -177,50 +131,6 @@ def _sanitize_ids(value: object, valid_ids: set[int]) -> list[int]:
     if not isinstance(value, list):
         return []
     return sorted({item for item in value if isinstance(item, int) and item in valid_ids})
-
-
-def _sanitize_research_brief(raw: object, evidence: list[dict]) -> dict:
-    if not isinstance(raw, Mapping):
-        raise ValueError("调研卡不是对象")
-    valid_ids = _source_ids(evidence)
-    facts = []
-    for item in raw.get("facts", []):
-        if not isinstance(item, Mapping):
-            continue
-        claim = clean_plain_text(item.get("claim"), 500)
-        ids = _sanitize_ids(item.get("source_ids"), valid_ids)
-        certainty = item.get("certainty")
-        if claim and ids and certainty in {"confirmed", "claimed", "inferred"}:
-            facts.append({"claim": claim, "source_ids": ids, "certainty": certainty})
-    if not facts:
-        raise ValueError("调研卡没有可追溯事实")
-
-    terms = []
-    for item in raw.get("key_terms", []):
-        if isinstance(item, Mapping):
-            term = clean_plain_text(item.get("term"), 100)
-            explanation = clean_plain_text(item.get("explanation_cn"), 300)
-            if term and explanation:
-                terms.append({"term": term, "explanation_cn": explanation})
-    return {
-        "facts": facts[:15],
-        "uncertainties": [
-            clean_plain_text(item, 400)
-            for item in raw.get("uncertainties", [])[:10]
-            if clean_plain_text(item, 400)
-        ],
-        "reader_questions": [
-            clean_plain_text(item, 300)
-            for item in raw.get("reader_questions", [])[:10]
-            if clean_plain_text(item, 300)
-        ],
-        "key_terms": terms[:10],
-        "recommended_structure": [
-            clean_plain_text(item, 100)
-            for item in raw.get("recommended_structure", [])[:8]
-            if clean_plain_text(item, 100)
-        ],
-    }
 
 
 def _sanitize_title_candidates(raw: object, strict: bool = True) -> list[dict]:
@@ -339,32 +249,27 @@ def _sanitize_review(raw: object) -> dict:
     }
 
 
-def build_research_brief(topic: dict, model: str | None = None) -> dict:
-    payload = {
-        "working_title": topic.get("working_title"),
-        "angle": topic.get("angle"),
-        "evidence": topic.get("evidence", []),
-    }
-    raw = request_json(
-        SYSTEM_PROMPT,
-        RESEARCH_PROMPT.format(payload=json.dumps(payload, ensure_ascii=False)),
-        model=model,
-        temperature=0.1,
-    )
-    return _sanitize_research_brief(raw, topic.get("evidence", []))
-
-
-def write_draft(
+def write_article(
     topic: dict,
-    brief: dict,
     target_chars: int = 2_000,
     model: str | None = None,
 ) -> dict:
     payload = {
         "topic": {key: topic.get(key) for key in ("working_title", "angle", "reason")},
-        "research_brief": brief,
         "sources": [
-            {key: source.get(key) for key in ("id", "title", "source", "url", "published_at")}
+            {
+                key: source.get(key)
+                for key in (
+                    "id",
+                    "title",
+                    "source",
+                    "category",
+                    "url",
+                    "published_at",
+                    "excerpt",
+                    "retrieved",
+                )
+            }
             for source in topic.get("evidence", [])
         ],
     }
@@ -373,35 +278,9 @@ def write_draft(
         WRITE_PROMPT.format(target_chars=target_chars, payload=json.dumps(payload, ensure_ascii=False)),
         model=model,
         temperature=0.6,
+        max_output_tokens=max(4_000, min(7_000, target_chars * 3)),
     )
     return _sanitize_article(raw, topic.get("evidence", []))
-
-
-def edit_and_review(
-    topic: dict,
-    brief: dict,
-    draft: dict,
-    target_chars: int = 2_000,
-    model: str | None = None,
-) -> tuple[dict, dict]:
-    payload = {
-        "topic": {key: topic.get(key) for key in ("working_title", "angle", "reason")},
-        "research_brief": brief,
-        "sources": [
-            {key: source.get(key) for key in ("id", "title", "source", "url", "published_at")}
-            for source in topic.get("evidence", [])
-        ],
-        "draft": draft,
-    }
-    raw = request_json(
-        SYSTEM_PROMPT,
-        EDIT_PROMPT.format(target_chars=target_chars, payload=json.dumps(payload, ensure_ascii=False)),
-        model=model,
-        temperature=0.35,
-    )
-    article = _sanitize_article(raw.get("article"), topic.get("evidence", []))
-    review = _sanitize_review(raw.get("review"))
-    return article, review
 
 
 def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> dict:
@@ -524,7 +403,6 @@ def fallback_article(topic: dict, error: str = "") -> dict:
     }
     return {
         "topic": topic,
-        "research_brief": {},
         "article": article,
         "review": review,
         "metrics": article_metrics(article, review),
@@ -541,24 +419,11 @@ def produce_article(
     if dry_run:
         return fallback_article(topic, "dry-run 不调用大模型")
     try:
-        brief = build_research_brief(topic, model=model)
-        draft = write_draft(topic, brief, target_chars=target_chars, model=model)
-        try:
-            article, review = edit_and_review(
-                topic,
-                brief,
-                draft,
-                target_chars=target_chars,
-                model=model,
-            )
-        except Exception as err:  # noqa: BLE001 - preserve a valid draft for manual editing
-            log.error("文章终审失败，保留完整初稿并继续生成 Markdown: %s", err)
-            article = draft
-            review = _sanitize_review({"issues": [f"终审失败: {err}"]})
+        article = write_article(topic, target_chars=target_chars, model=model)
+        review = _sanitize_review({"issues": ["质量检查仅记录诊断，不设置发布门禁"]})
         metrics = article_metrics(article, review, target_chars=target_chars)
         return {
             "topic": topic,
-            "research_brief": brief,
             "article": article,
             "review": review,
             "metrics": metrics,

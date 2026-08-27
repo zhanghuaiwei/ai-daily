@@ -25,7 +25,7 @@ RSS 抓取
   → 热门 AI 话题选择
   → 重复时降级为最新 AI 话题
   → 最多 4 个来源交叉调研
-  → 调研卡、初稿、终审去 AI 味
+  → 证据包一次成稿、内部终审去 AI 味
   → 公众号 Markdown
   → GitHub 提交
   → Server酱微信推送
@@ -75,7 +75,7 @@ python -m src.delivery --day-dir output/2026-08-27
 | `QWEN_*` | 千问最终兜底 |
 | `WECHAT_SENDKEY` | Server酱 Turbo 微信推送 |
 
-默认给单次长文模型请求 300 秒，并关闭 SDK 内部重复等待；供应商额度不足或未授权后会在本次运行中熔断。
+默认给单次长文模型请求 300 秒，并关闭 SDK 内部重复等待；供应商额度不足或未授权后会在本次运行中熔断。选题后只发起一次必需的成稿请求，千问关闭长思考模式，避免多阶段调用拖垮每日任务。
 
 本地配置写入 `.env`；GitHub 配置写入仓库 Actions Secrets。完整步骤见 [DEPLOY.md](./DEPLOY.md)。
 

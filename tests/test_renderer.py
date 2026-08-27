@@ -44,6 +44,7 @@ def test_markdown_has_wechat_layout_and_escapes_untrusted_markup():
     assert "【1】" in markdown
     assert "&lt;script&gt;x&lt;/script&gt;" in markdown
     assert "\\*\\*事实\\*\\*" in markdown
+    assert "内容由 AI" not in markdown
 
 
 def test_write_output_creates_only_one_markdown_file(tmp_path):
