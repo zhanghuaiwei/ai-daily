@@ -280,6 +280,7 @@ def _completion_options(
         # Qwen's OpenAI-compatible API otherwise may spend minutes on hidden reasoning.
         # These jobs need one bounded editorial result, not a visible chain of thought.
         options["extra_body"] = {"enable_thinking": False}
+        options["response_format"] = {"type": "json_object"}
     return options
 
 
@@ -291,7 +292,13 @@ def _parse_json_content(content: str) -> dict:
     start, end = content.find("{"), content.rfind("}")
     if start != -1 and end > start:
         content = content[start:end + 1]
-    payload = json.loads(content)
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError:
+        # Compatible providers occasionally emit a trailing comma despite a JSON-only prompt.
+        # Repair only this unambiguous syntax error; never guess missing facts or fields.
+        repaired = re.sub(r",\s*([}\]])", r"\1", content)
+        payload = json.loads(repaired, strict=False)
     if not isinstance(payload, dict):
         raise ValueError("LLM 顶层输出必须是 JSON 对象")
     return payload

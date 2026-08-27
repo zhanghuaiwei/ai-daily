@@ -116,7 +116,7 @@ score 按准确性、具体性、读者收益和传播力综合评分，selected
 {payload}
 </material>
 
-只输出严格 JSON：
+只输出严格 JSON；所有字段名使用双引号，字符串内换行必须转义，数组或对象最后一项不得有尾逗号：
 {{"title_candidates":[{{"title":"标题","angle":"测试角度","score":88}}],
 "selected_title":"候选中分数最高的标题","abstract":"80-120字摘要","lead":"开头段",
 "sections":[{{"heading":"中文小标题","paragraphs":[{{"text":"段落","source_ids":[1]}}]}}],

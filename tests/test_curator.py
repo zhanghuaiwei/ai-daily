@@ -146,6 +146,16 @@ def test_qwen_disables_thinking_and_bounds_output(monkeypatch):
     curator.request_json("system", "user", max_output_tokens=1_200)
     assert completions.kwargs["extra_body"] == {"enable_thinking": False}
     assert completions.kwargs["max_tokens"] == 1_200
+    assert completions.kwargs["response_format"] == {"type": "json_object"}
+
+
+def test_json_parser_repairs_only_common_trailing_commas():
+    assert curator._parse_json_content('{"items": [1, 2,],}') == {"items": [1, 2]}
+
+
+def test_json_parser_rejects_non_json_prose():
+    with pytest.raises(ValueError):
+        curator._parse_json_content("this is not json")
 
 
 def test_transport_error_degrades_to_fallback(monkeypatch):
