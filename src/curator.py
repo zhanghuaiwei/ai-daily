@@ -289,7 +289,7 @@ def _parse_json_content(content: str) -> dict:
 def _provider_is_unavailable(error: Exception) -> bool:
     status_code = getattr(error, "status_code", None)
     if isinstance(status_code, int) and (
-        status_code in {401, 403, 404, 408, 409, 429} or status_code >= 500
+        status_code in {401, 402, 403, 404, 408, 409, 429} or status_code >= 500
     ):
         return True
     message = str(error).casefold()

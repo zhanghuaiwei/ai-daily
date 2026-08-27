@@ -47,6 +47,9 @@ jobs:
           QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
           QWEN_BASE_URL: ${{ secrets.QWEN_BASE_URL }}
           QWEN_MODEL: ${{ secrets.QWEN_MODEL }}
+          # 千问是当前可用兜底：给单次长文请求充足时间，但不在 SDK 内重复等待。
+          LLM_TIMEOUT_SECONDS: '300'
+          LLM_MAX_RETRIES: '0'
         run: python -m src.pipeline --target-chars 2000
 
       - name: Commit Markdown to GitHub

@@ -317,6 +317,14 @@ class FakeQuotaError(Exception):
     status_code = 429
 
 
+class FakePaymentRequiredError(Exception):
+    status_code = 402
+
+
+def test_payment_required_opens_provider_circuit():
+    assert curator._provider_is_unavailable(FakePaymentRequiredError("Insufficient Balance"))
+
+
 class CountingCompletions:
     def __init__(self, content: str | None = None, error: Exception | None = None):
         self.content = content

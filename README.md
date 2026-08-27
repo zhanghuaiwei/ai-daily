@@ -75,6 +75,8 @@ python -m src.delivery --day-dir output/2026-08-27
 | `QWEN_*` | 千问最终兜底 |
 | `WECHAT_SENDKEY` | Server酱 Turbo 微信推送 |
 
+默认给单次长文模型请求 300 秒，并关闭 SDK 内部重复等待；供应商额度不足或未授权后会在本次运行中熔断。
+
 本地配置写入 `.env`；GitHub 配置写入仓库 Actions Secrets。完整步骤见 [DEPLOY.md](./DEPLOY.md)。
 
 ## Markdown 排版
