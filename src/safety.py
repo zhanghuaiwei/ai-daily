@@ -17,7 +17,8 @@ def clean_plain_text(value: object, limit: int) -> str:
     """Return single-line plain text with HTML and control characters removed."""
     if not isinstance(value, str) or limit <= 0:
         return ""
-    text = unicodedata.normalize("NFKC", html.unescape(value))
+    # NFC keeps Chinese full-width punctuation, which reads better in public-account articles.
+    text = unicodedata.normalize("NFC", html.unescape(value))
     text = _CONTROL_RE.sub("", text)
     text = _TAG_RE.sub(" ", text)
     text = re.sub(r"\s+", " ", text).strip()

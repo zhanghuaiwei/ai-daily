@@ -1,18 +1,18 @@
-name: AI Daily Digest
+name: AI Daily Markdown
 
-# 每天北京时间 07:30 自动运行；显式时区避免日期跨 UTC 日界线。
+# 每天北京时间 05:50 生成一篇文章，提交 GitHub 后推送到个人微信。
 on:
   schedule:
-    - cron: '30 7 * * *'
+    - cron: '50 5 * * *'
       timezone: 'Asia/Shanghai'
-  workflow_dispatch: {}   # 支持在 Actions 页面手动触发，调试必备
+  workflow_dispatch: {}
 
 concurrency:
   group: ai-daily-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
-  contents: write          # 允许把每日产物 commit 回仓库
+  contents: write
 
 jobs:
   build:
@@ -21,8 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          # workflow 重跑仍会沿用旧的触发提交；显式检出分支最新版本，
-          # 避免与已经提交的同日文章发生 add/add 冲突。
           ref: ${{ github.ref_name }}
           fetch-depth: 0
 
@@ -30,15 +28,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install deps
+      - name: Install dependencies
         run: pip install -r requirements.lock
 
-      - name: Run pipeline
+      - name: Generate one Markdown article
         env:
-          # 文字模型故障转移：GPT → DeepSeek → WorkBuddy/TokenHub → 千问。
-          # 千问在代码中固定为最终兜底；未配置 API Key 的供应商自动跳过。
           LLM_PROVIDER_ORDER: ${{ vars.LLM_PROVIDER_ORDER }}
-          # 兼容已有 GPT Secrets。
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
@@ -52,24 +47,16 @@ jobs:
           QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
           QWEN_BASE_URL: ${{ secrets.QWEN_BASE_URL }}
           QWEN_MODEL: ${{ secrets.QWEN_MODEL }}
-          # 配图独立使用图像接口；默认模型由代码设为 gpt-image-2。
-          IMAGE_API_KEY: ${{ secrets.IMAGE_API_KEY }}
-          IMAGE_BASE_URL: ${{ secrets.IMAGE_BASE_URL }}
-          IMAGE_MODEL: ${{ secrets.IMAGE_MODEL }}
-        run: |
-          if [[ -z "${IMAGE_API_KEY}" ]]; then
-            echo "IMAGE_API_KEY 未配置：继续生成并推送文字版文章"
-          fi
-          python -m src.pipeline --articles 2 --target-chars 2000
+        run: python -m src.pipeline --target-chars 2000
 
-      - name: Commit daily output
+      - name: Commit Markdown to GitHub
         id: commit_output
         run: |
-          git config user.name  "ai-daily-bot"
+          git config user.name "ai-daily-bot"
           git config user.email "actions@github.com"
           git add output/
           if git diff --cached --quiet; then
-            echo "no changes"
+            echo "Markdown 没有变化"
             exit 0
           fi
           edition_date=$(TZ=Asia/Shanghai date +%F)
@@ -77,39 +64,14 @@ jobs:
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
-      # 邮件直接内嵌本地文章图片，不依赖仓库公开地址。
-      - name: Deliver articles to QQ Mail
-        if: ${{ always() && steps.commit_output.outcome == 'success' }}
-        env:
-          QQ_EMAIL_USER: ${{ secrets.QQ_EMAIL_USER }}
-          QQ_EMAIL_AUTH_CODE: ${{ secrets.QQ_EMAIL_AUTH_CODE }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-        run: |
-          if [[ -z "${QQ_EMAIL_USER}" || -z "${QQ_EMAIL_AUTH_CODE}" ]]; then
-            echo "QQ 邮箱账号或 SMTP 授权码未配置：跳过邮件推送"
-            exit 0
-          fi
-          edition_date=$(TZ=Asia/Shanghai date +%F)
-          python -m src.email_delivery --day-dir "output/${edition_date}"
-
-      # 有图片时先提交再投递公网地址；没有图片时正常投递文字版。
-      - name: Deliver articles to WeChat
+      - name: Push Markdown to WeChat
         if: ${{ always() && steps.commit_output.outcome == 'success' }}
         env:
           WECHAT_SENDKEY: ${{ secrets.WECHAT_SENDKEY }}
-          PUBLIC_ASSET_ROOT_URL: ${{ secrets.PUBLIC_ASSET_ROOT_URL }}
         run: |
           if [[ -z "${WECHAT_SENDKEY}" ]]; then
-            echo "WECHAT_SENDKEY 未配置：跳过微信推送"
-            exit 0
+            echo "WECHAT_SENDKEY 未配置"
+            exit 1
           fi
           edition_date=$(TZ=Asia/Shanghai date +%F)
-          if [[ -n "${PUBLIC_ASSET_ROOT_URL}" ]]; then
-            asset_base_url="${PUBLIC_ASSET_ROOT_URL%/}/${edition_date}"
-          else
-            revision=$(git rev-parse HEAD)
-            asset_base_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${revision}/output/${edition_date}"
-          fi
-          python -m src.delivery \
-            --day-dir "output/${edition_date}" \
-            --asset-base-url "${asset_base_url}"
+          python -m src.delivery --day-dir "output/${edition_date}"

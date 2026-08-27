@@ -1,134 +1,69 @@
-# 部署与每日发布手册
+# GitHub 自动生成与微信推送
 
-> 项目已完成选题、调研、单题写作、扩写润色、封面/插图生成、质量门禁、渲染、个人微信和 QQ 邮箱投递。
-> 照下面做，全程约 10 分钟；之后每天由 GitHub Actions 自动运行。
+项目每天北京时间 05:50 生成一篇 `article.md`，提交到当前 GitHub 分支后，通过 Server酱推送到个人微信。
 
----
+## 1. 配置 Actions Secrets
 
-## 阶段一：推送到 GitHub（本机，2 分钟）
+仓库进入 **Settings → Secrets and variables → Actions**。
 
-**前置**：本机已装 git；GitHub 账号已配 SSH key（`ssh -T git@github.com` 能通）或用 HTTPS + token。
+至少配置一个云端文字模型 Key：
 
-```bash
-cd ai-daily
+- `LLM_API_KEY`，可选 `LLM_BASE_URL`、`LLM_MODEL`、`LLM_REASONING_EFFORT`；
+- 或 `DEEPSEEK_API_KEY`；
+- 或 `WORKBUDDY_API_KEY`；
+- 或 `QWEN_API_KEY`。
 
-# 1. 先在 github.com 网页上新建一个空仓库（不要勾选 README/gitignore，要纯空的），名字建议 ai-daily
+再配置：
 
-# 2. 关联并推送（二选一）
-git remote add origin git@github.com:<你的用户名>/ai-daily.git   # SSH 方式
-# git remote add origin https://github.com/<你的用户名>/ai-daily.git  # HTTPS 方式
+- `WECHAT_SENDKEY`：Server酱 Turbo SendKey。
 
-git push -u origin main
+可在 Actions Variables 中配置 `LLM_PROVIDER_ORDER`。项目只接受云端 OpenAI 兼容接口，不支持 Ollama、本机地址或端口 `11434`。
+
+## 2. 手动验证
+
+1. 打开 **Actions → AI Daily Markdown**。
+2. 选择 **Run workflow**。
+3. 确认 `Generate one Markdown article` 成功。
+4. 仓库出现 `output/<北京时间日期>/article.md`。
+5. `Push Markdown to WeChat` 成功，个人微信收到同一篇 Markdown 文章。
+
+若当天已经被旧版流程生成过，首次新流程运行会清除当天旧的多文件产物，只留下新的 `article.md`；往日日期不会被改动。
+
+流水线不会因为质量诊断分数较低而跳过投递；抓取失败、模型无法生成完整文章、Markdown 缺失或微信接口失败仍会让工作流失败。
+
+## 3. 定时规则
+
+工作流使用：
+
+```yaml
+schedule:
+  - cron: '50 5 * * *'
+    timezone: 'Asia/Shanghai'
 ```
 
-**验证点**：刷新 GitHub 仓库页，能看到 `src/`、`config/`、`.github/workflows/` 目录。
+即每天北京时间 05:50。GitHub 调度可能有少量排队延迟。
 
-## 阶段二：配置 Secrets（网页，2 分钟）
+## 4. 重试微信
 
-仓库页 → **Settings** → 左栏 **Secrets and variables** → **Actions** → **New repository secret**，逐个添加：
+文章已提交但微信临时失败时，打开 **Retry Existing WeChat Delivery**，填写 `YYYY-MM-DD`。重试只读取该日期的 `article.md`，不会重新生成文章。
 
-| Name | Value |
+## 5. 常见失败
+
+| 现象 | 处理 |
 |---|---|
-| `LLM_API_KEY` | 你的 OpenAI API key（`sk-` 开头） |
-| `LLM_BASE_URL` | `https://api.openai.com/v1` |
-| `LLM_MODEL` | `gpt-5.6-terra` |
-| `LLM_REASONING_EFFORT` | `medium`（可省略） |
-| `DEEPSEEK_API_KEY` | DeepSeek API key（可省略） |
-| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com`（可省略） |
-| `DEEPSEEK_MODEL` | `deepseek-v4-pro`（可省略） |
-| `WORKBUDDY_API_KEY` | 腾讯云 TokenHub API key（可省略，不是 WorkBuddy 登录凭据） |
-| `WORKBUDDY_BASE_URL` | `https://api.lkeap.cloud.tencent.com/plan/v3`（按套餐覆盖） |
-| `WORKBUDDY_MODEL` | `hy3`（按套餐支持的 Model ID 覆盖） |
-| `QWEN_API_KEY` | 阿里云百炼 API key（建议配置，作为最终兜底） |
-| `QWEN_BASE_URL` | `https://dashscope.aliyuncs.com/compatible-mode/v1`（其他地域需覆盖） |
-| `QWEN_MODEL` | `qwen3.8-max`（可省略） |
-| `IMAGE_API_KEY` | 你的 OpenAI API key（图像生成使用） |
-| `IMAGE_BASE_URL` | `https://api.openai.com/v1`（可省略） |
-| `IMAGE_MODEL` | `gpt-image-2`（可省略） |
-| `WECHAT_SENDKEY` | Server酱 Turbo 的 SendKey（用于个人微信推送） |
-| `QQ_EMAIL_USER` | 完整 QQ 邮箱地址（发件账号） |
-| `QQ_EMAIL_AUTH_CODE` | QQ 邮箱 SMTP 授权码，不能填写登录密码 |
-| `EMAIL_TO` | 收件邮箱（可省略，默认与发件账号相同） |
+| 未配置文字模型 Key | 至少配置一个云端供应商 Key |
+| 本地/Ollama 地址被拒绝 | 改用供应商 HTTPS 云端兼容接口 |
+| 所有候选都曾使用 | 扩大 `--window-hours` 或增加新信息源，不会强行重复 |
+| 模型终审失败 | 保留完整初稿继续生成 Markdown；诊断不会阻止投递 |
+| 模型连初稿都无法生成 | 工作流失败，不推送资料卡 |
+| `WECHAT_SENDKEY` 无效 | 在 Server酱重新生成并更新 Secret |
+| 当日 Markdown 不存在 | 先修复生成步骤，再执行微信重试 |
 
-> OpenAI API key 在 [API Keys](https://platform.openai.com/api-keys) 页面创建，只放 GitHub Secrets，不要提交到仓库。
-> 默认文字模型为 [`gpt-5.6-terra`](https://developers.openai.com/api/docs/models/gpt-5.6-terra)；如果账户暂时没有该模型权限，可在确认可用模型后覆盖 `LLM_MODEL`。
-> 多模型默认顺序是 GPT → DeepSeek → WorkBuddy/TokenHub → 千问。千问固定为最终兜底；至少配置一个文字模型 Key，建议务必配置 `QWEN_API_KEY`。
-> 配图默认使用 GPT Image 2。若接口提示模型权限问题，请检查余额，并按[图像生成官方说明](https://developers.openai.com/api/docs/guides/image-generation)完成必要的组织验证。
-> 微信推送密钥在 [Server酱 SendKey 页面](https://sct.ftqq.com/docs/getting-started/sendkey/) 获取。密钥只放 GitHub Secrets，不要写进代码。
-> QQ 邮箱需先在邮箱设置中开启 IMAP/SMTP 并生成授权码；项目优先使用 `smtp.qq.com:465` 发信，连接失败时自动切换到 `smtp.qq.com:587` 的 STARTTLS 加密连接，并通过 `imap.qq.com:993` 只清理带专用标记的过期项目邮件。
+## 6. 本地测试
 
-默认微信图片地址来自 GitHub，因此仓库应为公开仓库。私有仓库必须把 `output/` 同步到公开 HTTPS 存储，
-再增加 Secret `PUBLIC_ASSET_ROOT_URL`（例如 `https://cdn.example.com/ai-daily/output`）。
-
-## 阶段三：手动触发验证（网页，3 分钟）
-
-1. 仓库页 → **Actions** 标签 → 左栏 **AI Daily Digest** → 右侧 **Run workflow** 按钮 → 绿色确认
-2. 等运行出现（黄色转圈 → 绿色对勾），点进去看日志：
-   - `Run pipeline` 应出现抓取、独立选题、原文调研、文章质量状态和配图状态
-   - `Commit daily output` 步骤应有 `daily: <日期>` 提交
-   - `Deliver articles to QQ Mail` 应显示邮件推送数量
-   - `Deliver articles to WeChat` 应在提交之后推送图文文章
-3. 个人微信与 QQ 邮箱收到文章；仓库 `output/<北京时间日期>/article-01/` 出现 HTML、Markdown、JSON 和 `images/` = 部署成功
-
-**失败排查**：
-
-| 日志现象 | 原因与处理 |
-|---|---|
-| 未配置任何文字模型 Key | 至少配置 `LLM_API_KEY`、`DEEPSEEK_API_KEY`、`WORKBUDDY_API_KEY` 或 `QWEN_API_KEY` 之一 |
-| 日志显示某供应商“不可用并已熔断” | 正在自动切换下一供应商；检查对应 Key、额度、接口地域和模型权限 |
-| 所有文字模型均失败 | 生成待审核资料卡但不冒充正式文章；逐一检查 Secrets、余额、模型名和接口地址 |
-| `IMAGE_API_KEY 未配置` | 正常生成并推送文字版；需要图文版时添加图像密钥后重跑 |
-| 图像生成失败 | 自动降级为文字版；查看 `article.json` 的 `visuals.error`，检查图像模型权限、余额、超时和模型名 |
-| `WECHAT_SENDKEY 未配置` | 文章仍会生成，但不会推送；按阶段二配置 Secret 后重跑 |
-| QQ 邮箱账号或授权码未配置 | 文章和微信投递不受影响；配置后在 `Retry Existing Delivery` 中按日期只重试 QQ |
-| QQ 邮箱认证失败 | 确认已开启 IMAP/SMTP，Secret 中填写的是授权码而非登录密码；必要时重新生成授权码 |
-| QQ 邮箱连接被服务器断开 | 程序会从 465/SSL 自动切换到 587/STARTTLS；仍失败时检查日志中的失败阶段和 QQ 邮箱安全状态 |
-| QQ 邮箱清理失败 | 确认 IMAP/SMTP 均已开启；文章发送不受影响，下次清理仍可重试 |
-| 没有文章通过质量门禁 | 微信收到人工检查提醒；这只由文字与事实质量决定，与配图是否成功无关 |
-| 微信正文显示裂图 | 公开仓库检查图片 URL；私有仓库配置能公开访问图片的 `PUBLIC_ASSET_ROOT_URL` |
-| 个别源 `[FAIL]` | 正常（源偶尔抽风会自动跳过）；全失败才需要查网络 |
-| `Commit daily output` push 冲突 | workflow 会检出分支最新版本并串行执行日报任务，再在推送前 rebase；如仍冲突，检查是否有人同时修改了同日期的 `output/` 文件 |
-| 定时任务不触发 | GitHub cron 常态性延迟几分钟到几小时，耐心等或手动 Run |
-
-## 阶段四：每日发布到公众号（每天 2-5 分钟）
-
-1. 在个人微信或 QQ 邮箱查看通过文字质量门禁的独立文章；有图时为图文版，无图时为文字版。
-2. 打开仓库 `output/<北京时间日期>/article-XX/article_wechat.html` → 下载或本机打开。
-3. 浏览器打开 → `Cmd/Ctrl+A` 全选 → `Cmd/Ctrl+C`。
-4. [mp.weixin.qq.com](https://mp.weixin.qq.com) → 新建图文 → 正文粘贴；若本地图片未随复制带入，按文章位置上传 `images/illustration-01.jpg` 和 `illustration-02.jpg`。
-5. 通读事实与来源 → 上传 `images/cover.jpg` 作为封面 → 预览 → 发布。
-
-内联 CSS 会完整保留，粘贴即成品排版。MD 版可同步发布，JSON 版用于归档、去重和二次开发。
-
----
-
-## 日常自定义（改完 commit + push 即生效）
-
-- **加/删信息源**：`config/sources.yaml`（例如加 `http://export.arxiv.org/rss/cs.RO` 盯具身智能论文）
-- **改每日篇数**：pipeline 命令使用 `--articles 1` 到 `--articles 3`
-- **改目标篇幅**：pipeline 命令使用 `--target-chars 1600` 等参数
-- **调选题标准**：`src/curator.py` 的 `TOPIC_PROMPT`
-- **调写作与去 AI 味**：`src/writer.py` 的提示词和 `article_metrics`；最终推送还要求主题聚焦、逻辑、结构和标题质量四项均不低于 85 分
-- **调封面/插图风格**：`src/illustrator.py`；图像质量由 `IMAGE_QUALITY` 控制
-- **改排版样式**：`templates/article.html`
-- **调整抓取时间窗**：`.github/workflows/daily-digest.yml` 里给 pipeline 命令加 `--window-hours 48`
-- **调整跨天去重**：pipeline 命令加 `--history-days 14`；`0` 表示关闭
-- **改发布时间**：同时修改 workflow 的 `cron` 和 `timezone`，默认是北京时间 07:30
-- **改双周清理策略**：`.github/workflows/biweekly-cleanup.yml`；默认保留最近 14 天
-
-## 双周清理边界
-
-- `output/`：仅清理名字严格匹配 `YYYY-MM-DD` 且超过 14 天的普通目录；符号链接和异常路径会拒绝处理。
-- QQ 邮箱：仅在收件箱和服务器标记为“已发送”的文件夹中，删除同时满足“项目专用邮件头”和“超过 14 天”的邮件。
-- 微信：Server酱服务端正文免费版约 1 天、会员版约 3 天后自动过期；微信客户端消息不支持程序远程撤回，只能手动删除。
-- 工作流每周一北京时间 03:20 检查，由 `.maintenance/cleanup-state.json` 保证实际清理间隔不少于 14 天。手动运行时可选择 `dry_run` 只预览。
-
-## 安全提醒
-
-- `.env`（本地调试用）已被 gitignore，**永远不要**把 key 写进代码或提交记录
-- 对话/剪贴板里出现过的 key，用完建议去后台 rotate（重新生成）
-- `WECHAT_SENDKEY` 等同于给个人微信发送消息的权限，同样只能放 Secrets
-- `QQ_EMAIL_AUTH_CODE` 等同于第三方客户端发信权限，只能放 Secrets；泄露后立即在 QQ 邮箱撤销
-- `IMAGE_API_KEY` 会产生图像生成费用，应设置账户预算和用量告警
-- 微信投递会经过 Server酱第三方服务；不配置 SendKey 时只生成本地/仓库产物
-- RSS 和 LLM 输出都按不可信内容处理；不要移除 URL 白名单、输出净化或人工发布前审核
+```bash
+python -m compileall -q src tests
+ruff check src tests
+python -m pytest
+python -m src.pipeline --dry-run --window-hours 72
+```

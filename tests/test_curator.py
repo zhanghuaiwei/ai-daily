@@ -15,6 +15,14 @@ _PROVIDER_ENV_VARS = (
     "TOKENHUB_API_KEY",
     "QWEN_API_KEY",
     "DASHSCOPE_API_KEY",
+    "LLM_BASE_URL",
+    "GPT_BASE_URL",
+    "OPENAI_BASE_URL",
+    "DEEPSEEK_BASE_URL",
+    "WORKBUDDY_BASE_URL",
+    "TOKENHUB_BASE_URL",
+    "QWEN_BASE_URL",
+    "DASHSCOPE_BASE_URL",
 )
 
 
@@ -31,13 +39,14 @@ def make_item(
     published_ts: float,
     priority: int = 1,
     link: str | None = None,
+    category: str = "AI",
 ) -> FeedItem:
     return FeedItem(
         title=title,
         link=link or f"https://example.com/{title}",
         summary=f"summary {title}",
         source=source,
-        category="category",
+        category=category,
         priority=priority,
         published_ts=published_ts,
     )
@@ -210,6 +219,23 @@ def test_topic_validation_rejects_source_reused_across_topics():
         curator._validate_topics(raw, items, maximum=3)
 
 
+def test_topic_validation_rejects_prior_topic_even_with_a_new_link():
+    items = [make_item("New agent memory release", "Official", 1)]
+    raw = [{
+        "working_title": "AI 智能体记忆迎来新变化",
+        "angle": "解释更新",
+        "reason": "热门",
+        "source_links": [items[0].link],
+    }]
+    with pytest.raises(ValueError, match="往日话题重复"):
+        curator._validate_topics(
+            raw,
+            items,
+            maximum=1,
+            recent_titles=["AI 智能体记忆迎来新变化！"],
+        )
+
+
 def test_fallback_topic_count_never_exceeds_target():
     items = [make_item(f"item-{index}", f"S{index}", index) for index in range(1, 5)]
     topics = curator.plan_topics_fallback(items, target=2)
@@ -217,9 +243,23 @@ def test_fallback_topic_count_never_exceeds_target():
     assert all(topic["ai_selected"] is False for topic in topics)
 
 
+def test_topic_fallback_uses_latest_unique_ai_item():
+    items = [
+        make_item("Old AI model", "A", 1),
+        make_item("Newest AI agent", "B", 3),
+        make_item("Football transfer", "C", 4, category="General"),
+    ]
+    topics = curator.plan_topics_fallback(
+        items,
+        target=1,
+        recent_titles=["Old AI model"],
+    )
+    assert [topic["working_title"] for topic in topics] == ["Newest AI agent"]
+
+
 def test_fallback_prioritizes_ai_relevance_before_source_priority():
     items = [
-        make_item("Traffic camera policy", "News", 3, priority=1),
+        make_item("Traffic camera policy", "News", 3, priority=1, category="General"),
         make_item("New reasoning model for agents", "Research", 2, priority=3),
     ]
     picks = curator.curate_fallback(items, k=1)
@@ -239,6 +279,38 @@ def test_qwen_is_always_the_last_configured_provider(monkeypatch):
         "workbuddy",
         "qwen",
     ]
+
+
+def test_ollama_and_local_model_endpoint_is_rejected(monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setenv("LLM_BASE_URL", "http://localhost:11434/v1")
+    assert curator._provider_config("gpt") is None
+
+
+def test_topic_planner_accepts_up_to_configured_maximum(monkeypatch):
+    items = [
+        make_item(
+            f"AI item {index}",
+            f"S{index}",
+            index,
+            link=f"https://example.com/ai-item-{index}",
+        )
+        for index in range(1, 4)
+    ]
+    raw_topics = [
+        {
+            "working_title": f"AI 热门话题 {index}",
+            "angle": "技术变化",
+            "reason": "多个来源正在关注",
+            "source_links": [items[index - 1].link],
+        }
+        for index in range(1, 4)
+    ]
+    monkeypatch.setattr(curator, "_configured_providers", lambda: [object()])
+    monkeypatch.setattr(curator, "request_json", lambda *_args, **_kwargs: {"topics": raw_topics})
+    topics = curator.plan_topics_with_llm(items, target=2, maximum=3)
+    assert len(topics) == 3
+    assert all(topic["ai_selected"] for topic in topics)
 
 
 class FakeQuotaError(Exception):

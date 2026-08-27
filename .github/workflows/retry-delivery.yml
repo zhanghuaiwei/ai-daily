@@ -1,24 +1,15 @@
-name: Retry Existing Delivery
+name: Retry Existing WeChat Delivery
 
 on:
   workflow_dispatch:
     inputs:
       edition_date:
-        description: '要重新投递的产物日期（北京时间，YYYY-MM-DD）'
+        description: '重新推送的 Markdown 日期（北京时间，YYYY-MM-DD）'
         required: true
         type: string
-      channel:
-        description: '只重试失败的渠道，避免另一渠道重复收件'
-        required: true
-        default: qq
-        type: choice
-        options:
-          - qq
-          - wechat
-          - both
 
 concurrency:
-  group: ai-daily-redelivery-${{ inputs.edition_date }}-${{ inputs.channel }}
+  group: ai-daily-redelivery-${{ inputs.edition_date }}
   cancel-in-progress: false
 
 permissions:
@@ -27,7 +18,7 @@ permissions:
 jobs:
   deliver:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -35,53 +26,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install deps
+      - name: Install dependencies
         run: pip install -r requirements.lock
 
-      - name: Validate existing output
+      - name: Retry WeChat Markdown
         env:
           EDITION_DATE: ${{ inputs.edition_date }}
+          WECHAT_SENDKEY: ${{ secrets.WECHAT_SENDKEY }}
         run: |
           if [[ ! "${EDITION_DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
             echo "edition_date 必须是 YYYY-MM-DD"
             exit 1
           fi
-          if [[ ! -f "output/${EDITION_DATE}/articles.json" ]]; then
-            echo "找不到 output/${EDITION_DATE}/articles.json"
-            exit 1
-          fi
-
-      - name: Retry QQ Mail
-        if: ${{ inputs.channel == 'qq' || inputs.channel == 'both' }}
-        env:
-          EDITION_DATE: ${{ inputs.edition_date }}
-          QQ_EMAIL_USER: ${{ secrets.QQ_EMAIL_USER }}
-          QQ_EMAIL_AUTH_CODE: ${{ secrets.QQ_EMAIL_AUTH_CODE }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-        run: |
-          if [[ -z "${QQ_EMAIL_USER}" || -z "${QQ_EMAIL_AUTH_CODE}" ]]; then
-            echo "QQ 邮箱账号或 SMTP 授权码未配置"
-            exit 1
-          fi
-          python -m src.email_delivery --day-dir "output/${EDITION_DATE}"
-
-      - name: Retry WeChat
-        if: ${{ inputs.channel == 'wechat' || inputs.channel == 'both' }}
-        env:
-          EDITION_DATE: ${{ inputs.edition_date }}
-          WECHAT_SENDKEY: ${{ secrets.WECHAT_SENDKEY }}
-          PUBLIC_ASSET_ROOT_URL: ${{ secrets.PUBLIC_ASSET_ROOT_URL }}
-        run: |
           if [[ -z "${WECHAT_SENDKEY}" ]]; then
             echo "WECHAT_SENDKEY 未配置"
             exit 1
           fi
-          if [[ -n "${PUBLIC_ASSET_ROOT_URL}" ]]; then
-            asset_base_url="${PUBLIC_ASSET_ROOT_URL%/}/${EDITION_DATE}"
-          else
-            revision=$(git rev-parse HEAD)
-            asset_base_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${revision}/output/${EDITION_DATE}"
-          fi
-          python -m src.delivery \
-            --day-dir "output/${EDITION_DATE}" \
-            --asset-base-url "${asset_base_url}"
+          python -m src.delivery --day-dir "output/${EDITION_DATE}"

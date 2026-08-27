@@ -24,6 +24,10 @@ AI_TASTE_PHRASES = (
     "让我们拭目以待",
     "赋能千行百业",
     "颠覆性变革",
+    "在当今数字化时代",
+    "毋庸置疑",
+    "我们可以看到",
+    "由此可见",
 )
 REQUIRED_REVIEW_DIMENSIONS = {
     "timeliness",
@@ -45,14 +49,23 @@ CRITICAL_REVIEW_THRESHOLDS = {
 }
 MIN_REVIEW_TOTAL = 85
 MIN_HEADLINE_SCORE = 85
-_CLICKBAIT_TITLE_PHRASES = (
-    "震惊",
-    "彻底",
-    "史诗级",
-    "杀疯了",
-    "颠覆一切",
-    "必须知道",
-    "不看后悔",
+_ATTENTION_TITLE_MARKERS = (
+    "？",
+    "！",
+    "：",
+    "为什么",
+    "如何",
+    "竟然",
+    "终于",
+    "真相",
+    "背后",
+    "没想到",
+    "正在",
+    "首次",
+    "关键",
+    "危险",
+    "机会",
+    "改变",
 )
 _ENGLISH_GLOSS_RE = re.compile(r"[\u4e00-\u9fff]{2,}[（(]([A-Za-z][A-Za-z ._-]{1,50})[)）]")
 _ALLOWED_TECH_GLOSSES = {
@@ -67,6 +80,10 @@ _ALLOWED_TECH_GLOSSES = {
     "vla",
     "vlm",
 }
+
+
+class ArticleGenerationError(RuntimeError):
+    """Raised when no complete daily article can be produced."""
 
 RESEARCH_PROMPT = """请基于下面的选题和证据包，制作写作前的事实调研卡。
 
@@ -106,15 +123,10 @@ WRITE_PROMPT = """请根据调研卡写一篇可供编辑审核的中文公众�
 - 事实段落填写 source_ids；观点必须明确写成判断或推测；
 - 不编造采访、体验、数据或引用原话。
 
-标题 A/B 测试：给出 5 个自然中文标题，覆盖信息型、问题型、影响型等角度。标题要让泛读者一眼看出
-“谁或什么发生了哪项新变化，以及为什么值得点开”，优先使用具体主体、关键矛盾、意外结果或实际影响，
-避免“一个重大变化”“你需要知道”等空泛表达；不标题党，不使用“震惊、彻底、史诗级、杀疯了”等词。
-score 按准确性、具体性、读者收益和传播力综合评分，低于 85 分的标题不得选为 selected_title。
-
-配图策划：给出 1 张封面方案，并根据文章实际需要规划 0-5 张正文插图。没有内容值得可视化时可以是 0 张；
-短文通常 1-2 张，中等篇幅通常 2-3 张，长文最多 5 张，不为凑数配图。配图必须服务于理解，而不是泛泛的
-机器人、发光大脑或装饰背景；每张正文图放在最相关且互不重复的章节之后。concept 写清主体、关系、场景和
-视觉重点，alt 用自然中文概括图片内容。不要安排图片内文字、品牌标志、产品界面或虚构新闻现场。
+标题 A/B 测试：给出 5 个有点击冲动的自然中文标题，覆盖悬念型、冲突型、问题型和影响型。
+允许适度“标题党”，可以使用问句、反差、强冲突和意外结果吸引注意，但标题中的主体、变化和结论必须能被
+证据支持，不得虚构事实或承诺正文没有的内容。避免“一个重大变化”“你需要知道”等空泛表达。
+score 按准确性、具体性、读者收益和传播力综合评分，selected_title 选择最吸引人且事实准确的一项。
 
 <material>
 {payload}
@@ -124,9 +136,7 @@ score 按准确性、具体性、读者收益和传播力综合评分，低于 8
 {{"title_candidates":[{{"title":"标题","angle":"测试角度","score":88}}],
 "abstract":"80-120字摘要","lead":"开头段",
 "sections":[{{"heading":"中文小标题","paragraphs":[{{"text":"段落","source_ids":[1]}}]}}],
-"conclusion":"自然收束，不喊口号",
-"visual_plan":{{"cover":{{"concept":"封面视觉构想","alt":"封面图中文说明"}},
-"illustrations":[{{"after_section":2,"concept":"与该章节直接相关的视觉构想","alt":"正文插图中文说明"}}]}}}}"""
+"conclusion":"自然收束，不喊口号"}}"""
 
 EDIT_PROMPT = """你是公众号终审编辑。请对文章进行扩写、润色和结构修订，并完成质量自检。
 
@@ -138,12 +148,11 @@ EDIT_PROMPT = """你是公众号终审编辑。请对文章进行扩写、润色
 5. 用一句话概括全文中心命题；删掉偏离命题的材料，确保读者读完能清楚复述文章究竟在讲什么；
 6. 检查论证链：问题、证据、解释、影响、局限和结论必须前后衔接，不能把相关性写成因果关系；
 7. 文章长度接近 {target_chars} 个中文字符，保留 4-8 个职责明确、标题不重复的小节；
-8. 重做标题评分，selected_title 必须是候选中得分最高且与正文最一致的标题；标题应包含具体主体和
-   关键变化、矛盾或读者收益，引人注意但不夸张，最高分低于 85 时应继续重写；
+8. 重做标题评分，selected_title 必须是候选中最吸引人且与正文一致的标题；允许问句、悬念、反差和
+   适度“标题党”，但标题中的事实、主体和结论不得夸大或虚构；
 9. 逐项检查实时性、前沿性、事实可靠性、主题聚焦、逻辑、结构、可读性、中文表达、AI 味和标题质量。
    topic_focus、logic、structure、headline 任一项低于 85 分，都必须在 issues 中说明，不得虚报分数；
-10. 终审配图方案：保留 1 张封面，并按内容需要保留 0-5 张正文插图；不为凑数配图，
-   每张正文图放在不同且最相关的章节后；禁止图中文字、标志、水印、虚构界面和伪造现场。
+10. 输出只服务于 Markdown 公众号文章，段落短而有节奏，小标题清楚，重点信息前置。
 
 <draft_and_material>
 {payload}
@@ -153,9 +162,7 @@ EDIT_PROMPT = """你是公众号终审编辑。请对文章进行扩写、润色
 {{"article":{{"title_candidates":[{{"title":"标题","angle":"角度","score":90}}],
 "selected_title":"最终标题","abstract":"摘要","lead":"开头",
 "sections":[{{"heading":"小标题","paragraphs":[{{"text":"段落","source_ids":[1]}}]}}],
-"conclusion":"结尾",
-"visual_plan":{{"cover":{{"concept":"封面视觉构想","alt":"封面图中文说明"}},
-"illustrations":[{{"after_section":2,"concept":"正文插图视觉构想","alt":"正文插图中文说明"}}]}}}},
+"conclusion":"结尾"}},
 "review":{{"total":88,"dimensions":{{"timeliness":90,"frontier":88,"accuracy":90,
 "topic_focus":90,"logic":88,"structure":86,"readability":90,"chinese_style":90,
 "human_style":86,"headline":88}},
@@ -235,51 +242,23 @@ def _sanitize_title_candidates(raw: object, strict: bool = True) -> list[dict]:
     minimum = 3 if strict else 1
     if not minimum <= len(candidates) <= 5:
         raise ValueError(f"标题候选必须是 {minimum}-5 个")
+    best = max(candidates, key=lambda item: item["score"])
+    if strict and not _has_attention_hook(best["title"]):
+        best["title"] = clean_plain_text(f"{best['title']}：为什么这次不一样？", 64)
     return candidates
 
 
-def _sanitize_visual_plan(raw: object, section_count: int) -> dict:
-    if not isinstance(raw, Mapping):
-        return {"cover": {}, "illustrations": []}
+def _has_attention_hook(title: str) -> bool:
+    return any(marker in title for marker in _ATTENTION_TITLE_MARKERS)
 
-    raw_cover = raw.get("cover")
-    cover = {}
-    if isinstance(raw_cover, Mapping):
-        concept = clean_plain_text(raw_cover.get("concept"), 500)
-        alt = clean_plain_text(raw_cover.get("alt"), 120)
-        if concept and alt and re.search(r"[\u4e00-\u9fff]", alt):
-            cover = {"concept": concept, "alt": alt}
 
-    illustrations = []
-    used_sections: set[int] = set()
-    raw_illustrations = raw.get("illustrations")
-    if isinstance(raw_illustrations, list):
-        for item in raw_illustrations:
-            if not isinstance(item, Mapping):
-                continue
-            try:
-                after_section = int(item.get("after_section", 0))
-            except (TypeError, ValueError):
-                continue
-            concept = clean_plain_text(item.get("concept"), 500)
-            alt = clean_plain_text(item.get("alt"), 120)
-            if (
-                1 <= after_section <= section_count
-                and after_section not in used_sections
-                and concept
-                and alt
-                and re.search(r"[\u4e00-\u9fff]", alt)
-            ):
-                illustrations.append({
-                    "after_section": after_section,
-                    "concept": concept,
-                    "alt": alt,
-                })
-                used_sections.add(after_section)
-            if len(illustrations) == 5:
-                break
-    illustrations.sort(key=lambda item: item["after_section"])
-    return {"cover": cover, "illustrations": illustrations}
+def _remove_ai_taste(value: object, limit: int) -> str:
+    """Deterministically remove known model-like filler after normal sanitization."""
+    text = clean_plain_text(value, limit)
+    for phrase in AI_TASTE_PHRASES:
+        text = text.replace(phrase, "")
+    text = re.sub(r"^[，,。；;：:\s]+|[，,；;：:]\s*[。！？!?]", "", text).strip()
+    return text[:limit]
 
 
 def _sanitize_article(raw: object, evidence: list[dict], strict: bool = True) -> dict:
@@ -299,13 +278,13 @@ def _sanitize_article(raw: object, evidence: list[dict], strict: bool = True) ->
     for section in raw_sections:
         if not isinstance(section, Mapping):
             continue
-        heading = clean_plain_text(section.get("heading"), 80)
+        heading = _remove_ai_taste(section.get("heading"), 80)
         paragraphs = []
         for paragraph in section.get("paragraphs", []):
             if isinstance(paragraph, str):
-                text, ids = clean_plain_text(paragraph, 1_000), []
+                text, ids = _remove_ai_taste(paragraph, 1_000), []
             elif isinstance(paragraph, Mapping):
-                text = clean_plain_text(paragraph.get("text"), 1_000)
+                text = _remove_ai_taste(paragraph.get("text"), 1_000)
                 ids = _sanitize_ids(paragraph.get("source_ids"), valid_ids)
             else:
                 continue
@@ -316,13 +295,11 @@ def _sanitize_article(raw: object, evidence: list[dict], strict: bool = True) ->
     minimum_sections = 4 if strict else 1
     if not minimum_sections <= len(sections) <= 8:
         raise ValueError(f"有效章节必须是 {minimum_sections}-8 个")
-    abstract = clean_plain_text(raw.get("abstract"), 220)
-    lead = clean_plain_text(raw.get("lead"), 600)
-    conclusion = clean_plain_text(raw.get("conclusion"), 600)
+    abstract = _remove_ai_taste(raw.get("abstract"), 220)
+    lead = _remove_ai_taste(raw.get("lead"), 600)
+    conclusion = _remove_ai_taste(raw.get("conclusion"), 600)
     if not abstract or not lead or not conclusion:
         raise ValueError("摘要、开头或结尾为空")
-    # 配图是增强项，不影响文字成品。模型漏掉或写坏配图方案时保留文章正文。
-    visual_plan = _sanitize_visual_plan(raw.get("visual_plan"), len(sections))
     return {
         "title_candidates": candidates,
         "selected_title": selected,
@@ -330,7 +307,6 @@ def _sanitize_article(raw: object, evidence: list[dict], strict: bool = True) ->
         "lead": lead,
         "sections": sections,
         "conclusion": conclusion,
-        "visual_plan": visual_plan,
     }
 
 
@@ -497,7 +473,7 @@ def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> d
             critical_dimensions["headline"]
             and selected_title_score == best_title_score >= MIN_HEADLINE_SCORE
             and 8 <= title_length <= 40
-            and not any(phrase in title for phrase in _CLICKBAIT_TITLE_PHRASES)
+            and _has_attention_hook(title)
         ),
         "model_review": (
             review.get("total", 0) >= MIN_REVIEW_TOTAL
@@ -514,7 +490,7 @@ def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> d
         "ai_phrases": ai_phrases,
         "unnecessary_english_glosses": english_glosses,
         "checks": checks,
-        "publishable": all(checks.values()),
+        "quality_passed": all(checks.values()),
     }
 
 
@@ -536,7 +512,6 @@ def fallback_article(topic: dict, error: str = "") -> dict:
             "lead": clean_plain_text(topic.get("reason"), 500) or "这是一个待进一步调研的话题。",
             "sections": [{"heading": "现有资料", "paragraphs": paragraphs}],
             "conclusion": "请补充事实核验、结构编辑和人工审核后再发布。",
-            "visual_plan": {"cover": {}, "illustrations": []},
         },
         evidence,
         strict=False,
@@ -553,7 +528,7 @@ def fallback_article(topic: dict, error: str = "") -> dict:
         "article": article,
         "review": review,
         "metrics": article_metrics(article, review),
-        "publishable": False,
+        "delivery_ready": False,
     }
 
 
@@ -577,7 +552,7 @@ def produce_article(
                 model=model,
             )
         except Exception as err:  # noqa: BLE001 - preserve a valid draft for manual editing
-            log.error("文章终审失败，保留初稿但不投递: %s", err)
+            log.error("文章终审失败，保留完整初稿并继续生成 Markdown: %s", err)
             article = draft
             review = _sanitize_review({"issues": [f"终审失败: {err}"]})
         metrics = article_metrics(article, review, target_chars=target_chars)
@@ -587,8 +562,7 @@ def produce_article(
             "article": article,
             "review": review,
             "metrics": metrics,
-            "publishable": metrics["publishable"],
+            "delivery_ready": True,
         }
-    except Exception as err:  # noqa: BLE001 - failed content must remain an unpublishable preview
-        log.error("文章生成失败，输出待审核资料卡: %s", err)
-        return fallback_article(topic, str(err))
+    except Exception as err:  # noqa: BLE001 - model boundary is converted to a concise pipeline failure
+        raise ArticleGenerationError(clean_plain_text(str(err), 300) or type(err).__name__) from None
