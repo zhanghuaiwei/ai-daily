@@ -1,9 +1,16 @@
 name: AI Daily Markdown
 
 # 每天北京时间 05:50 生成一篇文章，提交 GitHub 后推送到个人微信。
+# GitHub 定时任务在高峰期会延迟甚至整次丢弃（2026-08-28 曾一整天未触发），
+# 因此增加 06:30 / 07:10 两个备用触发；文章已存在时本次运行会直接跳过，
+# 不会重复生成或重复推送微信。
 on:
   schedule:
     - cron: '50 5 * * *'
+      timezone: 'Asia/Shanghai'
+    - cron: '30 6 * * *'
+      timezone: 'Asia/Shanghai'
+    - cron: '10 7 * * *'
       timezone: 'Asia/Shanghai'
   workflow_dispatch: {}
 
@@ -31,7 +38,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.lock
 
+      - name: Skip if today's article already exists
+        id: check_today
+        run: |
+          if [[ -f "output/$(TZ=Asia/Shanghai date +%F)/article.md" ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "今日文章已存在，跳过本次运行"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Generate one Markdown article
+        if: steps.check_today.outputs.exists == 'false'
         env:
           LLM_PROVIDER_ORDER: ${{ vars.LLM_PROVIDER_ORDER }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
@@ -54,6 +72,7 @@ jobs:
 
       - name: Commit Markdown to GitHub
         id: commit_output
+        if: success() && steps.check_today.outputs.exists == 'false'
         run: |
           git config user.name "ai-daily-bot"
           git config user.email "actions@github.com"

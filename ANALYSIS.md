@@ -72,7 +72,7 @@ GPT → DeepSeek → WorkBuddy → 千问，千问固定为最终兜底（配置
 
 ## 5. 交付链路
 
-- `daily-digest.yml`：每天 05:50（北京时间）生成 → 提交 GitHub → 推送微信；带 `concurrency` 防重入，`timeout-minutes: 60`。
+- `daily-digest.yml`：每天 05:50（北京时间）生成 → 提交 GitHub → 推送微信；06:30、07:10 两个备用触发应对 GitHub 定时任务高峰期延迟/丢弃（2026-08-28 曾整天未触发）；当日 `article.md` 已存在时本次运行直接跳过，保证幂等；带 `concurrency` 防重入，`timeout-minutes: 60`。
 - `retry-delivery.yml`：手动触发，按日期重推已有文章到微信（生成失败但推送也失败的场景）。
 - `ci.yml`：push/PR 触发 compileall + ruff + pytest。
 
