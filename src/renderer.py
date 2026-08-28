@@ -33,8 +33,8 @@ def _markdown_text(value: object) -> str:
     return _MARKDOWN_ESCAPE_RE.sub(r"\\\1", escaped_html)
 
 
-def render_article_markdown(bundle: dict, date: str) -> str:
-    """Create a single polished Markdown document suitable for WeChat delivery."""
+def render_article_markdown(bundle: dict) -> str:
+    """Create one clean WeChat-ready Markdown article without template scaffolding."""
     article = bundle["article"]
     evidence = bundle["topic"].get("evidence", [])
     lines = [
@@ -50,34 +50,22 @@ def render_article_markdown(bundle: dict, date: str) -> str:
     for section in article["sections"]:
         lines += [f"## {_markdown_text(section['heading'])}", ""]
         for paragraph in section["paragraphs"]:
-            citations = "".join(f"【{source_id}】" for source_id in paragraph["source_ids"])
-            lines += [f"{_markdown_text(paragraph['text'])}{citations}", ""]
+            lines += [_markdown_text(paragraph), ""]
 
     lines += [
         "---",
         "",
-        "## 写在最后",
-        "",
         _markdown_text(article["conclusion"]),
         "",
-        "## 参考资料",
-        "",
     ]
-    for source in evidence:
-        url = source.get("url", "")
-        source_text = _markdown_text(source.get("source", ""))
-        title = _markdown_text(source.get("title", ""))
-        if url:
-            lines.append(f"{source['id']}\\. **{source_text}**：[原文](<{url}>) · {title}")
-        else:
-            lines.append(f"{source['id']}\\. **{source_text}** · {title}")
-    lines += [
-        "",
-        "---",
-        "",
-        f"<sub>资料整理日期：{date}</sub>",
-    ]
-    return "\n".join(lines) + "\n"
+    # Hidden source list keeps repository-wide link dedupe working without visible references.
+    links = [source.get("url", "") for source in evidence if source.get("url")]
+    if links:
+        lines.append("<!-- ai-daily-sources:")
+        lines.extend(f"  {link}" for link in links)
+        lines.append("-->")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def write_article_output(
@@ -91,7 +79,7 @@ def write_article_output(
     day_dir.mkdir(parents=True, exist_ok=True)
     destination = day_dir / "article.md"
     temporary = day_dir / ".article.md.tmp"
-    temporary.write_text(render_article_markdown(bundle, edition_date), encoding="utf-8")
+    temporary.write_text(render_article_markdown(bundle), encoding="utf-8")
     temporary.replace(destination)
     # A same-day migration/rerun must leave one Markdown artifact, never the old multi-file set.
     for filename in _LEGACY_FILES:

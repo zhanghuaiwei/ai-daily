@@ -4,10 +4,18 @@ from src.history import load_recent_links, load_recent_topic_titles
 
 
 def test_history_reads_all_markdown_editions_and_legacy_json(tmp_path):
-    new_day = tmp_path / "2026-01-01"
+    new_day = tmp_path / "2026-01-02"
     new_day.mkdir()
     (new_day / "article.md").write_text(
-        "# 往日 AI 热门话题\n\n1. [原文](<https://example.com/new?utm_source=x>)\n",
+        "# 新格式话题\n\n正文段落。\n\n<!-- ai-daily-sources:\n"
+        "  https://example.com/new?utm_source=x\n-->\n",
+        encoding="utf-8",
+    )
+
+    legacy_markdown_day = tmp_path / "2026-01-01"
+    legacy_markdown_day.mkdir()
+    (legacy_markdown_day / "article.md").write_text(
+        "# 往日 AI 热门话题\n\n1. [原文](<https://example.com/old-link>)\n",
         encoding="utf-8",
     )
 
@@ -26,8 +34,12 @@ def test_history_reads_all_markdown_editions_and_legacy_json(tmp_path):
 
     links = load_recent_links(tmp_path, "2026-08-27")
     titles = load_recent_topic_titles(tmp_path, "2026-08-27")
-    assert links == {"https://example.com/new", "https://example.com/legacy"}
-    assert titles == ["往日 AI 热门话题", "旧版工作标题", "旧版最终标题"]
+    assert links == {
+        "https://example.com/new",
+        "https://example.com/old-link",
+        "https://example.com/legacy",
+    }
+    assert titles == ["新格式话题", "往日 AI 热门话题", "旧版工作标题", "旧版最终标题"]
 
 
 def test_history_excludes_current_day_and_can_limit_window(tmp_path):

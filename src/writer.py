@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import zlib
 from collections.abc import Mapping
 
 from .curator import SYSTEM_PROMPT, request_json
@@ -27,25 +28,6 @@ AI_TASTE_PHRASES = (
     "我们可以看到",
     "由此可见",
 )
-REQUIRED_REVIEW_DIMENSIONS = {
-    "timeliness",
-    "frontier",
-    "accuracy",
-    "topic_focus",
-    "logic",
-    "structure",
-    "readability",
-    "chinese_style",
-    "human_style",
-    "headline",
-}
-CRITICAL_REVIEW_THRESHOLDS = {
-    "topic_focus": 85,
-    "logic": 85,
-    "structure": 85,
-    "headline": 85,
-}
-MIN_REVIEW_TOTAL = 85
 MIN_HEADLINE_SCORE = 85
 _ATTENTION_TITLE_MARKERS = (
     "？",
@@ -64,6 +46,15 @@ _ATTENTION_TITLE_MARKERS = (
     "危险",
     "机会",
     "改变",
+)
+# 无钩子标题的候选后缀池：按标题内容稳定散列选择，避免千篇一律的"为什么这次不一样"。
+_ATTENTION_HOOK_SUFFIXES = (
+    "：为什么这次不一样？",
+    "：背后发生了什么？",
+    "：这意味着什么？",
+    "，被忽略了什么？",
+    "：没那么简单",
+    "：影响有多大？",
 )
 _ENGLISH_GLOSS_RE = re.compile(r"[\u4e00-\u9fff]{2,}[（(]([A-Za-z][A-Za-z ._-]{1,50})[)）]")
 _ALLOWED_TECH_GLOSSES = {
@@ -88,7 +79,7 @@ WRITE_PROMPT = """请根据下面的选题和证据包，直接写成一篇完�
 事实边界：
 - 只使用证据包中的信息，不得用记忆补造数字、结论、机构表态、时间、采访、体验或引用原话；
 - 区分已证实事实、来源方自述、合理推断和未知信息；证据不足时降低语气或明确写出不确定性；
-- 每个事实段落填写 source_ids；观点必须明确写成分析或判断；
+- 观点必须明确写成分析或判断；
 - 写作前在内部完成事实整理，输出时不要展示思考过程、调研卡、写作提纲或自我评价。
 
 受众与篇幅：
@@ -104,6 +95,7 @@ WRITE_PROMPT = """请根据下面的选题和证据包，直接写成一篇完�
 - 每一节只承担一个清晰作用，前一节提出的问题要在后文得到解释，事实、分析和结论之间不能跳步；
 - 段落和章节之间要有自然过渡，句式长短有变化，避免连续排比、套路小标题和重复总结；
 - 不使用“值得注意的是、综上所述、让我们拭目以待、赋能、颠覆性变革”等 AI 腔套话；
+- 不使用“写在最后”“结语”“总结一下”等模板化栏目名，收尾自然融进正文；
 - 写完后在内部做一次终审，删去空洞判断、机械排比、模板化过渡、宣传腔和偏离中心命题的内容；
 - 最终只输出文章，不要提及 AI 写作、提示词、模型、终审或质量评分。
 
@@ -119,18 +111,8 @@ score 按准确性、具体性、读者收益和传播力综合评分，selected
 只输出严格 JSON；所有字段名使用双引号，字符串内换行必须转义，数组或对象最后一项不得有尾逗号：
 {{"title_candidates":[{{"title":"标题","angle":"测试角度","score":88}}],
 "selected_title":"候选中分数最高的标题","abstract":"80-120字摘要","lead":"开头段",
-"sections":[{{"heading":"中文小标题","paragraphs":[{{"text":"段落","source_ids":[1]}}]}}],
+"sections":[{{"heading":"中文小标题","paragraphs":["段落文本"]}}],
 "conclusion":"自然收束，不喊口号"}}"""
-
-
-def _source_ids(evidence: list[dict]) -> set[int]:
-    return {item["id"] for item in evidence if isinstance(item.get("id"), int)}
-
-
-def _sanitize_ids(value: object, valid_ids: set[int]) -> list[int]:
-    if not isinstance(value, list):
-        return []
-    return sorted({item for item in value if isinstance(item, int) and item in valid_ids})
 
 
 def _sanitize_title_candidates(raw: object, strict: bool = True) -> list[dict]:
@@ -154,7 +136,10 @@ def _sanitize_title_candidates(raw: object, strict: bool = True) -> list[dict]:
         raise ValueError(f"标题候选必须是 {minimum}-5 个")
     best = max(candidates, key=lambda item: item["score"])
     if strict and not _has_attention_hook(best["title"]):
-        best["title"] = clean_plain_text(f"{best['title']}：为什么这次不一样？", 64)
+        suffix = _ATTENTION_HOOK_SUFFIXES[
+            zlib.crc32(best["title"].encode("utf-8")) % len(_ATTENTION_HOOK_SUFFIXES)
+        ]
+        best["title"] = clean_plain_text(f"{best['title']}{suffix}", 64)
     return candidates
 
 
@@ -171,10 +156,9 @@ def _remove_ai_taste(value: object, limit: int) -> str:
     return text[:limit]
 
 
-def _sanitize_article(raw: object, evidence: list[dict], strict: bool = True) -> dict:
+def _sanitize_article(raw: object, strict: bool = True) -> dict:
     if not isinstance(raw, Mapping):
         raise ValueError("文章不是对象")
-    valid_ids = _source_ids(evidence)
     candidates = _sanitize_title_candidates(raw.get("title_candidates"), strict=strict)
     selected = clean_plain_text(raw.get("selected_title"), 64)
     best_title = max(candidates, key=lambda item: item["score"])["title"]
@@ -191,15 +175,11 @@ def _sanitize_article(raw: object, evidence: list[dict], strict: bool = True) ->
         heading = _remove_ai_taste(section.get("heading"), 80)
         paragraphs = []
         for paragraph in section.get("paragraphs", []):
-            if isinstance(paragraph, str):
-                text, ids = _remove_ai_taste(paragraph, 1_000), []
-            elif isinstance(paragraph, Mapping):
-                text = _remove_ai_taste(paragraph.get("text"), 1_000)
-                ids = _sanitize_ids(paragraph.get("source_ids"), valid_ids)
-            else:
-                continue
+            if isinstance(paragraph, Mapping):
+                paragraph = paragraph.get("text")
+            text = _remove_ai_taste(paragraph, 1_000)
             if text:
-                paragraphs.append({"text": text, "source_ids": ids})
+                paragraphs.append(text)
         if heading and paragraphs:
             sections.append({"heading": heading, "paragraphs": paragraphs})
     minimum_sections = 4 if strict else 1
@@ -217,35 +197,6 @@ def _sanitize_article(raw: object, evidence: list[dict], strict: bool = True) ->
         "lead": lead,
         "sections": sections,
         "conclusion": conclusion,
-    }
-
-
-def _sanitize_review(raw: object) -> dict:
-    if not isinstance(raw, Mapping):
-        return {"total": 0, "dimensions": {}, "issues": ["未完成模型终审"], "fact_check": "needs_review"}
-    try:
-        total = max(0, min(int(raw.get("total", 0)), 100))
-    except (TypeError, ValueError):
-        total = 0
-    dimensions = {}
-    if isinstance(raw.get("dimensions"), Mapping):
-        for key, value in raw["dimensions"].items():
-            try:
-                dimensions[clean_plain_text(str(key), 40)] = max(0, min(int(value), 100))
-            except (TypeError, ValueError):
-                continue
-    fact_check = raw.get("fact_check")
-    if fact_check not in {"pass", "needs_review"}:
-        fact_check = "needs_review"
-    return {
-        "total": total,
-        "dimensions": dimensions,
-        "issues": [
-            clean_plain_text(item, 300)
-            for item in raw.get("issues", [])[:10]
-            if clean_plain_text(item, 300)
-        ],
-        "fact_check": fact_check,
     }
 
 
@@ -280,17 +231,17 @@ def write_article(
         temperature=0.6,
         max_output_tokens=max(4_000, min(7_000, target_chars * 3)),
     )
-    return _sanitize_article(raw, topic.get("evidence", []))
+    return _sanitize_article(raw)
 
 
-def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> dict:
+def article_metrics(article: dict, target_chars: int = 2_000) -> dict:
     paragraphs = [
         paragraph
         for section in article.get("sections", [])
         for paragraph in section.get("paragraphs", [])
     ]
     body_parts = [article.get("lead", "")]
-    body_parts += [paragraph.get("text", "") for paragraph in paragraphs]
+    body_parts += [str(paragraph) for paragraph in paragraphs]
     body_parts.append(article.get("conclusion", ""))
     body = "".join(body_parts)
     chinese = len(re.findall(r"[\u4e00-\u9fff]", body))
@@ -307,13 +258,7 @@ def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> d
         for match in _ENGLISH_GLOSS_RE.finditer(body)
         if match.group(1).strip().casefold() not in _ALLOWED_TECH_GLOSSES
     ]
-    cited = sum(bool(paragraph.get("source_ids")) for paragraph in paragraphs)
-    citation_ratio = cited / max(len(paragraphs), 1)
     char_count = len(re.sub(r"\s+", "", body))
-    dimensions = review.get("dimensions", {})
-    dimension_gate = REQUIRED_REVIEW_DIMENSIONS <= set(dimensions) and all(
-        dimensions[name] >= 75 for name in REQUIRED_REVIEW_DIMENSIONS
-    )
     headings = [section.get("heading", "").strip() for section in article.get("sections", [])]
     unique_headings = len(headings) == len(set(headings))
     title_scores = [
@@ -330,10 +275,6 @@ def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> d
         ),
         0,
     )
-    critical_dimensions = {
-        name: dimensions.get(name, 0) >= minimum
-        for name, minimum in CRITICAL_REVIEW_THRESHOLDS.items()
-    }
     abstract_count = len(re.sub(r"\s+", "", article.get("abstract", "")))
     checks = {
         "length": int(target_chars * 0.65) <= char_count <= int(target_chars * 1.6),
@@ -342,22 +283,13 @@ def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> d
         "abstract": 60 <= abstract_count <= 180,
         "human_style": not ai_phrases,
         "no_unnecessary_english_gloss": not english_glosses,
-        "citations": citation_ratio >= 0.25,
         "structure": 4 <= len(article.get("sections", [])) <= 8,
-        "topic_focus": critical_dimensions["topic_focus"],
-        "logical_flow": critical_dimensions["logic"],
-        "clear_structure": critical_dimensions["structure"] and unique_headings,
+        "clear_structure": unique_headings,
         "headline_ab": len(article.get("title_candidates", [])) >= 3,
         "headline_quality": (
-            critical_dimensions["headline"]
-            and selected_title_score == best_title_score >= MIN_HEADLINE_SCORE
+            selected_title_score == best_title_score >= MIN_HEADLINE_SCORE
             and 8 <= title_length <= 40
             and _has_attention_hook(title)
-        ),
-        "model_review": (
-            review.get("total", 0) >= MIN_REVIEW_TOTAL
-            and review.get("fact_check") == "pass"
-            and dimension_gate
         ),
     }
     return {
@@ -365,7 +297,6 @@ def article_metrics(article: dict, review: dict, target_chars: int = 2_000) -> d
         "chinese_ratio": round(chinese_ratio, 3),
         "title_chinese_ratio": round(title_chinese_ratio, 3),
         "headline_score": selected_title_score,
-        "citation_ratio": round(citation_ratio, 3),
         "ai_phrases": ai_phrases,
         "unnecessary_english_glosses": english_glosses,
         "checks": checks,
@@ -379,9 +310,9 @@ def fallback_article(topic: dict, error: str = "") -> dict:
     for source in evidence:
         summary = clean_plain_text(source.get("excerpt"), 500)
         if summary:
-            paragraphs.append({"text": summary, "source_ids": [source["id"]]})
+            paragraphs.append(summary)
     if not paragraphs:
-        paragraphs = [{"text": "当前证据不足，等待人工补充调研后再发布。", "source_ids": []}]
+        paragraphs = ["当前证据不足，等待人工补充调研后再发布。"]
     title = clean_plain_text(topic.get("working_title"), 64) or "待审核选题"
     article = _sanitize_article(
         {
@@ -392,20 +323,13 @@ def fallback_article(topic: dict, error: str = "") -> dict:
             "sections": [{"heading": "现有资料", "paragraphs": paragraphs}],
             "conclusion": "请补充事实核验、结构编辑和人工审核后再发布。",
         },
-        evidence,
         strict=False,
     )
-    review = {
-        "total": 0,
-        "dimensions": {},
-        "issues": [clean_plain_text(error, 300) or "未完成大模型调研与终审"],
-        "fact_check": "needs_review",
-    }
     return {
         "topic": topic,
         "article": article,
-        "review": review,
-        "metrics": article_metrics(article, review),
+        "generation_error": clean_plain_text(error, 300) or "未完成大模型调研与终审",
+        "metrics": article_metrics(article),
         "delivery_ready": False,
     }
 
@@ -420,13 +344,10 @@ def produce_article(
         return fallback_article(topic, "dry-run 不调用大模型")
     try:
         article = write_article(topic, target_chars=target_chars, model=model)
-        review = _sanitize_review({"issues": ["质量检查仅记录诊断，不设置发布门禁"]})
-        metrics = article_metrics(article, review, target_chars=target_chars)
         return {
             "topic": topic,
             "article": article,
-            "review": review,
-            "metrics": metrics,
+            "metrics": article_metrics(article, target_chars=target_chars),
             "delivery_ready": True,
         }
     except Exception as err:  # noqa: BLE001 - model boundary is converted to a concise pipeline failure

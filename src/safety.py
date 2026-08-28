@@ -5,7 +5,6 @@ from __future__ import annotations
 import html
 import re
 import unicodedata
-from collections.abc import Mapping
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -64,16 +63,3 @@ def normalize_url_for_dedupe(value: object) -> str:
     ]
     path = parts.path.rstrip("/") or "/"
     return urlunsplit((parts.scheme, parts.netloc, path, urlencode(query, doseq=True), ""))
-
-
-def sanitize_pick(value: object) -> dict[str, str]:
-    """Normalize one curated item so renderers never receive raw model/feed data."""
-    pick: Mapping = value if isinstance(value, Mapping) else {}
-    return {
-        "title": clean_plain_text(pick.get("title"), 300) or "(无标题)",
-        "link": safe_http_url(pick.get("link")),
-        "source": clean_plain_text(pick.get("source"), 100),
-        "category": clean_plain_text(pick.get("category"), 100),
-        "summary": clean_plain_text(pick.get("summary"), 300),
-        "reason": clean_plain_text(pick.get("reason"), 500),
-    }

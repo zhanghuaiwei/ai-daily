@@ -32,11 +32,11 @@ def test_pipeline_writes_one_markdown_and_does_not_gate_delivery(monkeypatch, tm
             "lead": "先看事实。",
             "sections": [{
                 "heading": "发生了什么",
-                "paragraphs": [{"text": "完整正文。", "source_ids": [1]}],
+                "paragraphs": ["完整正文。"],
             }],
             "conclusion": "继续观察。",
         },
-        "metrics": {"checks": {"model_review": False}},
+        "metrics": {"checks": {"length": False}},
         "delivery_ready": True,
     }
 

@@ -68,3 +68,22 @@ def test_delivery_never_checks_quality_gate(monkeypatch, tmp_path):
     )
     assert delivery.deliver_daily_markdown(day_dir, sendkey="test-key") == {"code": 0}
     assert sent[0][0] == "标题：发生了什么？"
+
+
+def test_delivery_strips_hidden_source_comments(monkeypatch, tmp_path):
+    day_dir = tmp_path / "2026-08-27"
+    day_dir.mkdir()
+    (day_dir / "article.md").write_text(
+        "# 标题：发生了什么？\n\n正文\n\n<!-- ai-daily-sources:\n  https://example.com/source\n-->\n",
+        encoding="utf-8",
+    )
+    sent = []
+    monkeypatch.setattr(
+        delivery,
+        "send_to_wechat",
+        lambda title, markdown, sendkey=None: sent.append((title, markdown)) or {"code": 0},
+    )
+    assert delivery.deliver_daily_markdown(day_dir, sendkey="test-key") == {"code": 0}
+    assert "ai-daily-sources" not in sent[0][1]
+    assert "https://example.com/source" not in sent[0][1]
+    assert sent[0][1].endswith("正文")

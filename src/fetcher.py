@@ -6,10 +6,14 @@
 """
 import calendar
 import concurrent.futures
+import ipaddress
 import logging
+import socket
 import ssl
 import time
+import urllib.request
 from dataclasses import asdict, dataclass
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 import certifi
@@ -25,6 +29,47 @@ FETCH_RETRIES = 2
 MAX_FEED_BYTES = 5 * 1024 * 1024
 MAX_FETCH_WORKERS = 6
 SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+
+
+def _assert_public_http_url(url: str) -> None:
+    """Refuse loopback, private, and reserved network targets (SSRF guard)."""
+    try:
+        hostname = (urlsplit(url).hostname or "").casefold()
+    except ValueError as err:
+        raise ValueError("URL 不是合法的 HTTP(S) 地址") from err
+    if (
+        not hostname
+        or hostname in {"localhost", "localhost.localdomain"}
+        or hostname.endswith(".localhost")
+        or hostname.endswith(".local")
+    ):
+        raise ValueError(f"拒绝本地主机地址: {hostname or '空主机'}")
+    try:
+        addrinfos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror as err:
+        raise ValueError(f"域名解析失败: {hostname}") from err
+    for addrinfo in addrinfos:
+        ip = ipaddress.ip_address(addrinfo[4][0])
+        if not ip.is_global:
+            raise ValueError(f"拒绝内网或保留地址: {ip}")
+
+
+class _PublicOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Validate every redirect hop before following it."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001
+        _assert_public_http_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _build_public_only_opener() -> urllib.request.OpenerDirector:
+    return urllib.request.build_opener(
+        _PublicOnlyRedirectHandler(),
+        urllib.request.HTTPSHandler(context=SSL_CONTEXT),
+    )
+
+
+_PUBLIC_ONLY_OPENER = _build_public_only_opener()
 
 
 @dataclass
@@ -93,17 +138,19 @@ def _download_feed(
     url: str,
     timeout: int = FETCH_TIMEOUT_SECONDS,
     retries: int = FETCH_RETRIES,
+    opener: urllib.request.OpenerDirector | None = None,
 ) -> bytes:
     """Download one bounded-size feed with timeout and short exponential retries."""
     last_error: Exception | None = None
     for attempt in range(retries + 1):
         try:
             request = Request(url, headers={"User-Agent": "Mozilla/5.0 (ai-daily-pipeline)"})
-            with urlopen(  # noqa: S310 - URLs are validated config
-                request,
-                timeout=timeout,
-                context=SSL_CONTEXT,
-            ) as response:
+            if opener is None:
+                # Trusted config sources may be self-hosted (e.g. local RSSHub), no SSRF filter here.
+                response = urlopen(request, timeout=timeout, context=SSL_CONTEXT)
+            else:
+                response = opener.open(request, timeout=timeout)
+            with response:
                 data = response.read(MAX_FEED_BYTES + 1)
             if len(data) > MAX_FEED_BYTES:
                 raise ValueError(f"Feed 超过 {MAX_FEED_BYTES // 1024 // 1024} MiB 上限")
@@ -116,11 +163,12 @@ def _download_feed(
 
 
 def download_url(url: str) -> bytes:
-    """Download a validated public article/feed URL using the shared network policy."""
+    """Download an untrusted public article URL, refusing private/redirected network targets."""
     safe_url = safe_http_url(url)
     if not safe_url:
         raise ValueError("URL 不是合法的 HTTP(S) 地址")
-    return _download_feed(safe_url)
+    _assert_public_http_url(safe_url)
+    return _download_feed(safe_url, opener=_PUBLIC_ONLY_OPENER)
 
 
 def fetch_one(source: dict, window_hours: int) -> list[FeedItem]:

@@ -18,6 +18,12 @@ from .safety import clean_plain_text
 SERVERCHAN_ENDPOINT = "https://sctapi.ftqq.com/{sendkey}.send"
 _SENDKEY_RE = re.compile(r"^[A-Za-z0-9._-]{12,200}$")
 _TITLE_RE = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def strip_internal_comments(markdown: str) -> str:
+    """Remove hidden source metadata before the article leaves this repository."""
+    return _HTML_COMMENT_RE.sub("", markdown).strip()
 
 
 class DeliveryError(RuntimeError):
@@ -79,7 +85,9 @@ def send_to_wechat(
 def deliver_daily_markdown(day_dir: Path, sendkey: str | None = None) -> dict:
     """Send the article whenever it exists; no quality score can block delivery."""
     _path, markdown = load_daily_markdown(day_dir)
-    return send_to_wechat(article_title(markdown), markdown, sendkey=sendkey)
+    return send_to_wechat(
+        article_title(markdown), strip_internal_comments(markdown), sendkey=sendkey
+    )
 
 
 def main() -> int:

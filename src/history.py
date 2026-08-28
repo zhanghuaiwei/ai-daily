@@ -13,6 +13,8 @@ from .safety import clean_plain_text, normalize_url_for_dedupe
 log = logging.getLogger(__name__)
 _MARKDOWN_LINK_RE = re.compile(r"\[原文(?:链接)?\]\((?:<([^>]+)>|([^)]+))\)")
 _MARKDOWN_TITLE_RE = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)
+# 新格式把当日来源链接放在不可见的 HTML 注释里，既保持正文干净又保留全历史去重。
+_SOURCE_COMMENT_RE = re.compile(r"<!--\s*ai-daily-sources:(.*?)-->", re.DOTALL)
 
 
 def _included_day(name: str, current_day: str, history_days: int | None) -> bool:
@@ -62,6 +64,11 @@ def load_recent_links(
                 key = normalize_url_for_dedupe(match.group(1) or match.group(2))
                 if key:
                     links.add(key)
+            for match in _SOURCE_COMMENT_RE.finditer(markdown):
+                for token in match.group(1).split():
+                    key = normalize_url_for_dedupe(token)
+                    if key:
+                        links.add(key)
 
         # Backward compatibility keeps old JSON editions in the no-repeat history.
         for json_path in (day_dir / "digest.json", *day_dir.glob("article-*/article.json")):

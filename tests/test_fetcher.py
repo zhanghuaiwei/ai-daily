@@ -1,5 +1,6 @@
 import calendar
 import email.utils
+import socket
 from types import SimpleNamespace
 
 import pytest
@@ -99,3 +100,31 @@ def test_fetch_all_isolates_failures_and_keeps_config_order(monkeypatch):
     monkeypatch.setattr(fetcher, "fetch_one", fake_fetch)
     items = fetcher.fetch_all(sources, max_workers=3)
     assert [item.source for item in items] == ["A"]
+
+
+def test_download_url_rejects_private_and_local_targets():
+    for url in (
+        "http://localhost:1200/feed",
+        "http://127.0.0.1/x",
+        "http://192.168.1.1/feed",
+        "http://10.0.0.5/article",
+        "http://169.254.169.254/latest/meta-data",
+        "http://[::1]/feed",
+    ):
+        with pytest.raises(ValueError):
+            fetcher.download_url(url)
+
+
+def test_download_url_rejects_public_name_resolving_to_private_ip(monkeypatch):
+    def fake_getaddrinfo(_host, _port):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.1.2.3", 0))]
+
+    monkeypatch.setattr(fetcher.socket, "getaddrinfo", fake_getaddrinfo)
+    with pytest.raises(ValueError, match="内网"):
+        fetcher.download_url("https://attacker.example/article")
+
+
+def test_redirect_handler_rejects_private_redirect_target():
+    handler = fetcher._PublicOnlyRedirectHandler()
+    with pytest.raises(ValueError):
+        handler.redirect_request(None, None, 302, "Found", {}, "http://10.0.0.9/secret")

@@ -20,7 +20,7 @@ def bundle():
             "sections": [
                 {
                     "heading": "发生了什么",
-                    "paragraphs": [{"text": "正文事实。", "source_ids": [1]}],
+                    "paragraphs": ["正文事实。"],
                 },
             ],
             "conclusion": "最后留下一个仍需观察的问题。",
@@ -33,18 +33,29 @@ def test_today_uses_beijing_timezone_across_utc_date_boundary():
     assert _today_str(now) == "2026-08-24"
 
 
-def test_markdown_has_wechat_layout_and_escapes_untrusted_markup():
+def test_markdown_escapes_untrusted_markup():
     value = bundle()
-    value["article"]["sections"][0]["paragraphs"][0]["text"] = "<script>x</script> **事实**"
-    markdown = render_article_markdown(value, "2026-08-27")
+    value["article"]["sections"][0]["paragraphs"][0] = "<script>x</script> **事实**"
+    markdown = render_article_markdown(value)
     assert markdown.startswith("# AI 新变化：为什么这次不一样？")
     assert "> **导读**｜" in markdown
-    assert "## 写在最后" in markdown
-    assert "## 参考资料" in markdown
-    assert "【1】" in markdown
     assert "&lt;script&gt;x&lt;/script&gt;" in markdown
     assert "\\*\\*事实\\*\\*" in markdown
-    assert "内容由 AI" not in markdown
+
+
+def test_markdown_drops_template_scaffolding_and_citations():
+    markdown = render_article_markdown(bundle())
+    assert "## 写在最后" not in markdown
+    assert "## 参考资料" not in markdown
+    assert "【1】" not in markdown
+    assert "资料整理日期" not in markdown
+    assert "最后留下一个仍需观察的问题。" in markdown
+
+
+def test_markdown_keeps_hidden_sources_for_repository_dedupe():
+    markdown = render_article_markdown(bundle())
+    assert "ai-daily-sources" in markdown
+    assert "https://example.com/source" in markdown
 
 
 def test_write_output_creates_only_one_markdown_file(tmp_path):

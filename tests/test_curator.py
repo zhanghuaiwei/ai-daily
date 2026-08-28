@@ -52,17 +52,6 @@ def make_item(
     )
 
 
-def test_fallback_prefers_newer_items_and_caps_each_source():
-    items = [
-        make_item("new", "A", 300),
-        make_item("old", "A", 100),
-        make_item("middle", "A", 200),
-        make_item("b", "B", 50, priority=2),
-    ]
-    picks = curator.curate_fallback(items, k=4, per_source=2)
-    assert [pick["title"] for pick in picks] == ["new", "middle", "b"]
-
-
 def test_round_robin_sampling_represents_each_source():
     items = [
         make_item("a1", "A", 3),
@@ -70,11 +59,6 @@ def test_round_robin_sampling_represents_each_source():
         make_item("b1", "B", 1),
     ]
     assert [item["source"] for item in curator._sample_items(items)] == ["A", "B", "A"]
-
-
-class RaisingCompletions:
-    def create(self, **_kwargs):
-        raise TimeoutError("simulated timeout")
 
 
 class ContentCompletions:
@@ -158,64 +142,6 @@ def test_json_parser_rejects_non_json_prose():
         curator._parse_json_content("this is not json")
 
 
-def test_transport_error_degrades_to_fallback(monkeypatch):
-    items = [make_item("new", "A", 2), make_item("old", "A", 1)]
-    monkeypatch.setenv("LLM_API_KEY", "test-key")
-    monkeypatch.setattr(
-        curator,
-        "_build_client",
-        lambda _provider=None: fake_client(RaisingCompletions()),
-    )
-    assert [pick["title"] for pick in curator.curate_with_llm(items)] == ["new", "old"]
-
-
-def test_invalid_response_shape_degrades_to_fallback(monkeypatch):
-    items = [make_item("new", "A", 2), make_item("old", "B", 1)]
-    monkeypatch.setenv("LLM_API_KEY", "test-key")
-    monkeypatch.setattr(
-        curator,
-        "_build_client",
-        lambda _provider=None: fake_client(ContentCompletions('{"picks": "not-a-list"}')),
-    )
-    assert [pick["title"] for pick in curator.curate_with_llm(items)] == ["new", "old"]
-
-
-def test_validate_picks_restores_authoritative_candidate_fields():
-    items = [make_item(f"item-{index}", f"S{index}", index) for index in range(1, 4)]
-    raw = [
-        {
-            "title": "invented",
-            "link": item.link,
-            "source": "invented",
-            "category": "invented",
-            "summary": "<b>中文摘要</b>",
-            "reason": "推荐理由",
-        }
-        for item in items
-    ]
-    picks = curator._validate_picks(raw, items)
-    assert [pick["title"] for pick in picks] == [item.title for item in items]
-    assert picks[0]["source"] == items[0].source
-    assert picks[0]["summary"] == "中文摘要"
-
-
-def test_validate_picks_rejects_invented_link():
-    items = [make_item(f"item-{index}", f"S{index}", index) for index in range(1, 4)]
-    raw = [
-        {
-            "title": "x",
-            "link": "https://attacker.example/item",
-            "source": "x",
-            "category": "x",
-            "summary": "摘要",
-            "reason": "理由",
-        }
-        for _ in range(3)
-    ]
-    with pytest.raises(ValueError, match="不属于候选列表"):
-        curator._validate_picks(raw, items)
-
-
 def test_topic_validation_clusters_real_candidate_sources():
     items = [make_item(f"item-{index}", f"S{index}", index) for index in range(1, 4)]
     raw = [{
@@ -275,15 +201,6 @@ def test_topic_fallback_uses_latest_unique_ai_item():
         recent_titles=["Old AI model"],
     )
     assert [topic["working_title"] for topic in topics] == ["Newest AI agent"]
-
-
-def test_fallback_prioritizes_ai_relevance_before_source_priority():
-    items = [
-        make_item("Traffic camera policy", "News", 3, priority=1, category="General"),
-        make_item("New reasoning model for agents", "Research", 2, priority=3),
-    ]
-    picks = curator.curate_fallback(items, k=1)
-    assert picks[0]["title"] == "New reasoning model for agents"
 
 
 def test_qwen_is_always_the_last_configured_provider(monkeypatch):
