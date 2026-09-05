@@ -27,7 +27,7 @@ RSS 并发抓取（fetcher）
 | `src/safety.py` | 不可信数据横切清洗 | 控制字符/HTML 标签剥离、NFC 归一化、HTTP(S) URL 白名单校验、去跟踪参数的 URL 归一化 |
 | `src/fetcher.py` | RSS 抓取 | 6 线程并发、20s 超时、指数退避重试、5MiB 上限、单源失败隔离；`download_url` 带私网地址拦截（SSRF 防护） |
 | `src/history.py` | 全历史去重 | 扫描全部往期 `article.md` 的隐藏来源注释与 H1 标题，兼容旧版 `[原文](url)` 链接和旧版 JSON |
-| `src/curator.py` | LLM 选题 | GPT → DeepSeek → WorkBuddy → 千问四级故障转移、进程内熔断、标题相似度防重（0.72 阈值）、候选链接白名单校验 |
+| `src/curator.py` | LLM 选题 | GPT → DeepSeek → WorkBuddy → 千问四级故障转移、具体性边界校验、进程内熔断、标题相似度防重（0.72 阈值）、候选链接白名单校验 |
 | `src/researcher.py` | 原文调研 | 最多 4 源并发抓正文、自研 HTML 正文抽取（忽略 script/nav/footer）、失败回退 RSS 摘要 |
 | `src/writer.py` | 一次成稿 | 单次 LLM 调用产出结构化 JSON、确定性清洗去 AI 味、标题 A/B 候选、多样化注意力后缀、纯确定性质量诊断 |
 | `src/renderer.py` | 排版输出 | 无模板痕迹的公众号 Markdown、临时文件 + `replace` 原子写入、同日重跑清理旧版多文件产物 |
@@ -54,15 +54,18 @@ GPT → DeepSeek → WorkBuddy → 千问，千问固定为最终兜底（配置
 
 新格式的来源链接放在 `article.md` 末尾的 HTML 注释里（`<!-- ai-daily-sources: ... -->`），渲染时不可见，但 `history.py` 能解析，`delivery.py` 在推送微信前会剥离。
 
-### 4.5 去 AI 味的确定性
+### 4.5 具体选题边界
+选题提示词要求每篇文章只围绕“一个具体对象、一个明确变化、一个读者问题”展开，优先产品功能、模型更新、开源项目、论文实验、规则变化和真实事故。`topic_is_too_broad` 会拦截“AI 行业趋势、智能体时代、技术原理综述”等没有明确事件锚点的宏大或理论化话题；兜底选题也会跳过这类候选。
+
+### 4.6 去 AI 味的确定性
 两层防线：
 - 写作提示词中显式禁止套话、排比、模板化栏目名；
 - `_remove_ai_taste` 对 16 个常见 AI 腔短语做确定性删除，质量诊断中 `human_style` 检查兜底。
 
-### 4.6 质量诊断（纯确定性）
+### 4.7 质量诊断（纯确定性）
 `article_metrics` 的 10 项检查全部基于文本本身的确定性计算（篇幅、中文占比、摘要长度、标题 A/B、结构唯一性、注意力钩子等），不再依赖模型自评维度。诊断只记录警告，永不阻断投递——避免了"占位评分导致每天误报警"的噪音问题。
 
-### 4.7 SSRF 防护
+### 4.8 SSRF 防护
 `download_url`（调研抓取不可信文章链接的唯一入口）在下载前：
 1. 拒绝 `localhost`/`.local` 主机名；
 2. DNS 解析后拒绝所有非全局 IP（覆盖回环、私网、链路本地、保留段，含 IPv6）；

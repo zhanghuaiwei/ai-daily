@@ -182,11 +182,30 @@ def test_topic_validation_rejects_prior_topic_even_with_a_new_link():
         )
 
 
+def test_topic_validation_rejects_broad_or_theoretical_topic():
+    item = make_item("AI industry update", "Official", 1)
+    raw = [{
+        "working_title": "AI 行业未来趋势：人工智能如何改变世界",
+        "angle": "系统分析人工智能的发展、生态与宏观影响",
+        "reason": "帮助读者理解整个行业的长期变化",
+        "source_links": [item.link],
+    }]
+    with pytest.raises(ValueError, match="过于宽泛"):
+        curator._validate_topics(raw, [item], maximum=1)
+
+
 def test_fallback_topic_count_never_exceeds_target():
     items = [make_item(f"item-{index}", f"S{index}", index) for index in range(1, 5)]
     topics = curator.plan_topics_fallback(items, target=2)
     assert len(topics) == 2
     assert all(topic["ai_selected"] is False for topic in topics)
+
+
+def test_fallback_skips_broad_topic_for_concrete_event():
+    broad = make_item("AI 行业未来趋势", "A", 3)
+    concrete = make_item("New AI tool release", "B", 2)
+    topics = curator.plan_topics_fallback([broad, concrete], target=1)
+    assert [topic["working_title"] for topic in topics] == ["New AI tool release"]
 
 
 def test_topic_fallback_uses_latest_unique_ai_item():
