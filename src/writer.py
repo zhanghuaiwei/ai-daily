@@ -83,25 +83,22 @@ WRITE_PROMPT = """请根据下面的选题和证据包，直接写成一篇完�
 - 写作前在内部完成事实整理，输出时不要展示思考过程、调研卡、写作提纲或自我评价。
 
 受众与篇幅：
-- 面向泛读者，不假设读者有专业背景；目标正文约 {target_chars} 个中文字符；
+- 面向泛读者，不假设读者有专业背景；目标正文约 {target_chars} 个中文字符，短平快，宁短勿水；
 - 技术准确，但解释到“能理解为什么重要”即可，不写成论文综述或产品软文；
 - 只围绕一个具体对象和一个明确变化写作，不要扩展成 AI 行业、技术趋势或整个产品线的介绍；
-- 全文只回答三个问题：发生了什么、为什么会这样、它会影响谁/读者能做什么；
+- 开头 3 句内必须说清“发生了什么 + 和读者有什么关系”，第一段就给读者往下读的理由；
+- 全文只回答三个问题：发生了什么、为什么值得关心、读者能做什么或该期待什么；
 - 最多解释一个核心技术概念，首次出现时用生活、工作或上网场景解释，后文不要堆术语；
-- 普通读者读完开头两段就应知道这件事与自己有什么关系；如果证据无法支持这种联系，就诚实说明影响仍有限；
 - 中文为主。模型名、论文名、API、代码等技术专名可保留英文，普通概念不要附带英文翻译。
 
 公众号文章标准：
 - 一个话题只写一篇，不拼接无关新闻；
-- 在内部先确定全文唯一的中心命题，正文中的每个章节都必须直接服务于这个命题；
-- 不要试图讲清整个行业的来龙去脉；背景只保留理解这一个变化所必需的部分；
-- 开头直接从事实、冲突、问题或具体场景切入，不使用宏大时代背景；
-- 结构为：具体事实 → 它解决的一个问题 → 必要的原理解释 → 对开发者/普通人的一个实际影响 → 局限 → 收束；
-- 每一节只承担一个清晰作用，前一节提出的问题要在后文得到解释，事实、分析和结论之间不能跳步；
-- 段落和章节之间要有自然过渡，句式长短有变化，避免连续排比、套路小标题和重复总结；
+- 不要试图讲清整个行业的来龙去脉；背景只保留理解这一个变化所必需的部分，删掉任何为了“完整”而存在的内容；
+- 结构为：钩子开头（事实/冲突/具体场景）→ 一句话说清发生了什么 → 为什么跟读者有关 → 一个实用要点或明确判断 → 自然收束；
+- 段落要短，每段只讲一件事；句式长短有变化，避免连续排比、套路小标题和重复总结；
 - 不使用“值得注意的是、综上所述、让我们拭目以待、赋能、颠覆性变革”等 AI 腔套话；
 - 不使用“写在最后”“结语”“总结一下”等模板化栏目名，收尾自然融进正文；
-- 写完后在内部做一次终审，删去空洞判断、机械排比、模板化过渡、宣传腔和偏离中心命题的内容；
+- 写完后在内部做一次终审：删去空洞判断、机械排比、模板化过渡、宣传腔和偏离中心命题的内容，每删一句文章都应该更紧凑；
 - 最终只输出文章，不要提及 AI 写作、提示词、模型、终审或质量评分。
 
 标题 A/B 测试：给出 5 个有点击冲动的自然中文标题，覆盖悬念型、冲突型、问题型和影响型。
@@ -187,7 +184,8 @@ def _sanitize_article(raw: object, strict: bool = True) -> dict:
                 paragraphs.append(text)
         if heading and paragraphs:
             sections.append({"heading": heading, "paragraphs": paragraphs})
-    minimum_sections = 4 if strict else 1
+    # 短平快（默认 1200 字）下 2 个小节就够；不强制 4 节把合格短文拒之门外。
+    minimum_sections = 2 if strict else 1
     if not minimum_sections <= len(sections) <= 8:
         raise ValueError(f"有效章节必须是 {minimum_sections}-8 个")
     abstract = _remove_ai_taste(raw.get("abstract"), 220)
@@ -207,7 +205,7 @@ def _sanitize_article(raw: object, strict: bool = True) -> dict:
 
 def write_article(
     topic: dict,
-    target_chars: int = 2_000,
+    target_chars: int = 1_200,
     model: str | None = None,
 ) -> dict:
     payload = {
@@ -239,7 +237,7 @@ def write_article(
     return _sanitize_article(raw)
 
 
-def article_metrics(article: dict, target_chars: int = 2_000) -> dict:
+def article_metrics(article: dict, target_chars: int = 1_200) -> dict:
     paragraphs = [
         paragraph
         for section in article.get("sections", [])
@@ -288,7 +286,7 @@ def article_metrics(article: dict, target_chars: int = 2_000) -> dict:
         "abstract": 60 <= abstract_count <= 180,
         "human_style": not ai_phrases,
         "no_unnecessary_english_gloss": not english_glosses,
-        "structure": 4 <= len(article.get("sections", [])) <= 8,
+        "structure": 2 <= len(article.get("sections", [])) <= 8,
         "clear_structure": unique_headings,
         "headline_ab": len(article.get("title_candidates", [])) >= 3,
         "headline_quality": (
@@ -341,7 +339,7 @@ def fallback_article(topic: dict, error: str = "") -> dict:
 
 def produce_article(
     topic: dict,
-    target_chars: int = 2_000,
+    target_chars: int = 1_200,
     model: str | None = None,
     dry_run: bool = False,
 ) -> dict:

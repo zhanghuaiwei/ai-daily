@@ -59,6 +59,23 @@ sources:
     category: "社区热点"
     priority: 2
 
+  # Reddit 的 .rss 返回当前热帖排序，是判断"老外社区正在刷屏什么"的最直接信号
+  - name: "Reddit r/LocalLLaMA"
+    url: "https://www.reddit.com/r/LocalLLaMA/.rss"
+    category: "社区热点"
+    priority: 2
+
+  - name: "Reddit r/singularity"
+    url: "https://www.reddit.com/r/singularity/.rss"
+    category: "社区热点"
+    priority: 2
+
+  # GitHub Trending：开源项目真热度（RSSHub 公共实例可能连不上，失败自动跳过）
+  - name: "GitHub Trending (RSSHub)"
+    url: "https://rsshub.app/github/trending/daily/any"
+    category: "社区热点"
+    priority: 3
+
   # ---------- 中文源（对照补充，经 RSSHub） ----------
   # 注意：RSSHub 公共实例在国内网络/部分沙箱可能连不上，失败会自动跳过；
   # GitHub Actions 海外 runner 上通常可达。要稳定就自建：

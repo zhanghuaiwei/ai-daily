@@ -39,8 +39,8 @@ def main() -> int:
     parser.add_argument(
         "--target-chars",
         type=int,
-        default=2_000,
-        help="文章目标中文字符数（默认 2000，允许 1200-3500）",
+        default=1_200,
+        help="文章目标中文字符数（默认 1200 短平快，允许 1200-3500）",
     )
     args = parser.parse_args()
     if args.window_hours <= 0:

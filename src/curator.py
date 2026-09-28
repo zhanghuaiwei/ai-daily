@@ -39,6 +39,14 @@ _AI_TOPIC_RE = re.compile(
     r"人工智能|大模型|智能体|机器人|具身智能|机器学习|深度学习|神经网络|生成式|推理模型|代码模型",
     flags=re.IGNORECASE,
 )
+# 品牌名/产品名单独匹配：热帖标题常只有产品名（如"微软撤掉 Copilot+ 标签"），
+# 通用 AI 正则靠 \bAI\b 会漏掉它们，导致真正的 AI 热点被校验误杀。
+_AI_BRAND_RE = re.compile(
+    r"openai|chatgpt|\bGPT-\d|copilot|anthropic|claude|gemini|grok|perplexity|"
+    r"deepseek|qwen|llama\b|mistral|midjourney|stable diffusion|hugging ?face|ollama|"
+    r"minimax|moonshot|kimi|豆包|文心|通义|讯飞|智谱|deepmind",
+    flags=re.IGNORECASE,
+)
 _BROAD_TOPIC_RE = re.compile(
     r"(?:人工智能|生成式(?:人工智能|AI)|AI|大模型|智能体|机器人|机器学习|深度学习)"
     r"(?:的)?(?:行业|产业|发展|趋势|时代|生态|革命|未来|格局|竞争|变革|影响|进化)"
@@ -96,11 +104,14 @@ TOPIC_PROMPT = """请把候选资讯按“同一件具体的事”聚类，只�
 “AI 的未来/趋势/发展”“大模型竞争”“智能体时代”“人工智能如何改变行业”这类大词，说明范围过大，必须放弃。
 一个话题只聚焦一个变化，不要试图概括整个行业或一项技术的完整发展史。
 
-评分标准：
-1. 具体优先：优先“一个对象 + 一个动作/变化 + 一个结果”的事件，例如某模型新增一个能力、某工具
+评分标准（按重要性排序）：
+1. 热度优先：category 为“社区热点”的候选（Hacker News、Reddit、GitHub Trending 等）代表
+   社区正在真实讨论；同一件事被 3 个以上独立来源报道也视为热点。读者是公众号订阅者，
+   优先选他们可能已经在朋友圈或群里刷到过的事；单一媒体报道、社区零讨论的事件，
+   只有直接影响读者正在使用的产品时才可选；
+2. 具体优先：优先“一个对象 + 一个动作/变化 + 一个结果”的事件，例如某模型新增一个能力、某工具
    降价或改规则、某开源项目发布可运行版本、某论文给出一个容易解释的实验结果；
-2. 泛读者价值：读者不需要专业背景，前两段就能知道发生了什么，并能联系到工作、上网、手机或日常生活；
-3. 热度适中：优先多个来源同时报道、社区正在讨论、会影响开发者或普通用户的具体事件，不追求最大新闻；
+3. 泛读者价值：读者不需要专业背景，前两段就能知道发生了什么，并能联系到工作、上网、手机或日常生活；
 4. 不重复：recent_topics 中出现过的事件或技术主题不得换标题重写；
 5. 最新降级：如果最热门事件与往日话题重复，改选候选中发布时间最新、仍未写过的具体 AI 事件；
 6. 技术含量：只解释理解这件事所必需的一个核心原理、实现或性能变化，不写论文综述；
@@ -391,32 +402,40 @@ def request_json(
             continue
         model_name = (model or "").strip() if provider.name == primary_name else ""
         model_name = model_name or provider.model
-        try:
-            client = _build_client(provider)
-            if client is None:  # pragma: no cover - configured provider always builds a client
-                raise RuntimeError("客户端初始化失败")
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                **_completion_options(
-                    model_name,
-                    temperature,
-                    provider,
-                    max_output_tokens=max_output_tokens,
-                ),
-            )
-            payload = _parse_json_content(response.choices[0].message.content or "")
-        except Exception as error:  # noqa: BLE001 - provider failover must catch SDK/shape errors
-            summary = _safe_error_summary(error, provider)
-            failures.append(f"{provider.name}({model_name}): {summary}")
-            if _provider_is_unavailable(error):
-                _UNAVAILABLE_PROVIDERS.add(provider.name)
-                log.warning("文字模型 %s 不可用并已熔断: %s", provider.name, summary)
-            else:
-                log.warning("文字模型 %s 返回无效结果: %s", provider.name, summary)
+        client = _build_client(provider)
+        if client is None:  # pragma: no cover - configured provider always builds a client
+            failures.append(f"{provider.name}: 客户端初始化失败")
+            continue
+        # 模型偶发返回坏 JSON 时原地重试一次；单供应商配置下没有下一家可切换。
+        payload = None
+        for attempt in range(2):
+            try:
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    **_completion_options(
+                        model_name,
+                        temperature,
+                        provider,
+                        max_output_tokens=max_output_tokens,
+                    ),
+                )
+                payload = _parse_json_content(response.choices[0].message.content or "")
+                break
+            except Exception as error:  # noqa: BLE001 - provider failover must catch SDK/shape errors
+                summary = _safe_error_summary(error, provider)
+                if _provider_is_unavailable(error):
+                    _UNAVAILABLE_PROVIDERS.add(provider.name)
+                    log.warning("文字模型 %s 不可用并已熔断: %s", provider.name, summary)
+                    break
+                if attempt == 0:
+                    log.warning("文字模型 %s 返回无效结果，原地重试一次: %s", provider.name, summary)
+                else:
+                    failures.append(f"{provider.name}({model_name}): {summary}")
+        if payload is None:
             continue
         log.info("文字模型调用成功: %s / %s", provider.name, model_name)
         return payload
@@ -432,7 +451,8 @@ def _is_ai_item(item: FeedItem | Mapping) -> bool:
         title = str(item.get("title", ""))
         summary = str(item.get("summary", ""))
     configured_ai_feed = source == "arXiv cs.AI" or "AI" in category
-    return bool(configured_ai_feed or _AI_TOPIC_RE.search(f"{title} {summary}"))
+    text = f"{title} {summary}"
+    return bool(configured_ai_feed or _AI_TOPIC_RE.search(text) or _AI_BRAND_RE.search(text))
 
 
 def _normalized_topic_title(value: object) -> str:
@@ -535,7 +555,7 @@ def _validate_topics(
         if topic_keys & used_links:
             raise ValueError(f"第 {index} 个话题与其他话题重复使用主来源")
         if not any(_is_ai_item(item) for item in sources):
-            raise ValueError(f"第 {index} 个话题不是明确的 AI 话题")
+            raise ValueError(f"第 {index} 个话题不是明确的 AI 话题: {title}")
         used_links.update(topic_keys)
         topics.append({
             "working_title": title,
