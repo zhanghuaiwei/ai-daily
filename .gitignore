@@ -43,3 +43,4 @@ htmlcov/
 
 # 本地测试辅助脚本
 run-local.sh
+uv.lock
