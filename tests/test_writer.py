@@ -146,3 +146,36 @@ def test_produce_article_raises_when_no_complete_draft_exists(monkeypatch):
     )
     with pytest.raises(writer.ArticleGenerationError, match="provider down"):
         writer.produce_article(topic)
+
+
+def test_write_article_edition_angle_reaches_prompt(monkeypatch):
+    topic = {"working_title": "话题", "angle": "角度", "reason": "理由", "evidence": evidence()}
+    captured = {}
+
+    def fake_request(_system, prompt, **kwargs):
+        captured["prompt"] = prompt
+        captured["kwargs"] = kwargs
+        return valid_article()
+
+    monkeypatch.setattr(writer, "request_json", fake_request)
+
+    writer.write_article(topic, target_chars=2_000)
+    assert "「AI 应用」线路" not in captured["prompt"]
+
+    writer.write_article(topic, target_chars=2_000, edition="application")
+    assert "「AI 应用」线路" in captured["prompt"]
+    assert "怎么用起来、对谁有用" in captured["prompt"]
+    assert captured["kwargs"]["max_output_tokens"] == 6_000
+
+
+def test_produce_article_passes_edition_through(monkeypatch):
+    topic = {"working_title": "话题", "angle": "角度", "reason": "理由", "evidence": evidence()}
+    seen = {}
+
+    def fake_write_article(_topic, target_chars=1_200, model=None, edition="news"):
+        seen["edition"] = edition
+        return writer._sanitize_article(valid_article())
+
+    monkeypatch.setattr(writer, "write_article", fake_write_article)
+    writer.produce_article(topic, target_chars=2_000, edition="application")
+    assert seen["edition"] == "application"

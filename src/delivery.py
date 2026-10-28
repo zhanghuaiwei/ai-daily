@@ -1,9 +1,10 @@
-"""Deliver the daily Markdown article to WeChat through ServerChan Turbo."""
+"""Deliver the daily Markdown articles to WeChat through ServerChan Turbo."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import re
 import sys
@@ -12,9 +13,11 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from .editions import EDITIONS, edition_title_prefix
 from .fetcher import SSL_CONTEXT
 from .safety import clean_plain_text
 
+log = logging.getLogger(__name__)
 SERVERCHAN_ENDPOINT = "https://sctapi.ftqq.com/{sendkey}.send"
 _SENDKEY_RE = re.compile(r"^[A-Za-z0-9._-]{12,200}$")
 _TITLE_RE = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)
@@ -35,18 +38,24 @@ def article_title(markdown: str) -> str:
     return clean_plain_text(match.group(1) if match else "", 80) or "AI 每日热门话题"
 
 
-def load_daily_markdown(day_dir: Path) -> tuple[Path, str]:
+def load_daily_markdowns(day_dir: Path) -> list[tuple[Path, str]]:
+    """Load every edition article present in the day directory (news + application)."""
     day_root = day_dir.resolve()
-    article_path = (day_dir / "article.md").resolve()
-    if article_path.parent != day_root or not article_path.is_file():
+    loaded: list[tuple[Path, str]] = []
+    for spec in EDITIONS.values():
+        article_path = (day_dir / spec["filename"]).resolve()
+        if article_path.parent != day_root or not article_path.is_file():
+            continue
+        try:
+            markdown = article_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as err:
+            raise DeliveryError(f"无法读取当日 Markdown 文章: {spec['filename']}") from err
+        if not markdown.strip():
+            raise DeliveryError(f"当日 Markdown 文章为空: {spec['filename']}")
+        loaded.append((article_path, markdown))
+    if not loaded:
         raise DeliveryError("找不到当日 Markdown 文章")
-    try:
-        markdown = article_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as err:
-        raise DeliveryError("无法读取当日 Markdown 文章") from err
-    if not markdown.strip():
-        raise DeliveryError("当日 Markdown 文章为空")
-    return article_path, markdown
+    return loaded
 
 
 def send_to_wechat(
@@ -83,11 +92,25 @@ def send_to_wechat(
 
 
 def deliver_daily_markdown(day_dir: Path, sendkey: str | None = None) -> dict:
-    """Send the article whenever it exists; no quality score can block delivery."""
-    _path, markdown = load_daily_markdown(day_dir)
-    return send_to_wechat(
-        article_title(markdown), strip_internal_comments(markdown), sendkey=sendkey
-    )
+    """Send every edition article present; no quality score can block delivery.
+
+    每篇独立尝试、互不拖垮：部分成功时返回成功映射并记录失败日志，
+    全部失败才抛出 DeliveryError，交由调用方以失败退出码处理。
+    """
+    delivered: dict[str, dict] = {}
+    failures: list[str] = []
+    for path, markdown in load_daily_markdowns(day_dir):
+        title = f"{edition_title_prefix(path.name)}{article_title(markdown)}"
+        try:
+            delivered[path.name] = send_to_wechat(
+                title, strip_internal_comments(markdown), sendkey=sendkey
+            )
+        except DeliveryError as err:
+            failures.append(f"{path.name}: {err}")
+            log.warning("微信投递失败 %s", failures[-1])
+    if failures and not delivered:
+        raise DeliveryError("；".join(failures))
+    return delivered
 
 
 def main() -> int:
@@ -95,8 +118,8 @@ def main() -> int:
     parser.add_argument("--day-dir", type=Path, required=True)
     args = parser.parse_args()
     try:
-        deliver_daily_markdown(args.day_dir)
-        print("已推送 1 篇 Markdown 文章到个人微信")
+        delivered = deliver_daily_markdown(args.day_dir)
+        print(f"已推送 {len(delivered)} 篇 Markdown 文章到个人微信")
         return 0
     except DeliveryError as err:
         print(f"微信投递失败：{err}", file=sys.stderr)

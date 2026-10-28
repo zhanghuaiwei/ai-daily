@@ -1,9 +1,11 @@
 name: AI Daily Markdown
 
-# 每天北京时间 05:50 生成一篇文章，提交 GitHub 后推送到个人微信。
+# 每天北京时间 05:50 生成两篇文章——资讯线（article.md）+ 应用线（application.md），
+# 提交 GitHub 后各自推送到个人微信（应用线标题带「AI应用|」前缀）。
 # GitHub 定时任务在高峰期会延迟甚至整次丢弃（2026-08-28 曾一整天未触发），
-# 因此增加 06:30 / 07:10 两个备用触发；文章已存在时本次运行会直接跳过，
-# 不会重复生成或重复推送微信。
+# 因此增加 06:30 / 07:10 两个备用触发；某条线当日文章已存在时该线直接跳过，
+# 不会重复生成或重复推送微信。两条线互相独立：一条失败不拖垮另一条，
+# 但任一实际执行过的线失败会让整个工作流标红（见末尾守门步骤）。
 on:
   schedule:
     - cron: '50 5 * * *'
@@ -20,6 +22,25 @@ concurrency:
 
 permissions:
   contents: write
+
+env:
+  LLM_PROVIDER_ORDER: ${{ vars.LLM_PROVIDER_ORDER }}
+  LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+  LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+  LLM_MODEL: ${{ secrets.LLM_MODEL }}
+  LLM_REASONING_EFFORT: ${{ secrets.LLM_REASONING_EFFORT }}
+  DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+  DEEPSEEK_BASE_URL: ${{ secrets.DEEPSEEK_BASE_URL }}
+  DEEPSEEK_MODEL: ${{ secrets.DEEPSEEK_MODEL }}
+  WORKBUDDY_API_KEY: ${{ secrets.WORKBUDDY_API_KEY }}
+  WORKBUDDY_BASE_URL: ${{ secrets.WORKBUDDY_BASE_URL }}
+  WORKBUDDY_MODEL: ${{ secrets.WORKBUDDY_MODEL }}
+  QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
+  QWEN_BASE_URL: ${{ secrets.QWEN_BASE_URL }}
+  QWEN_MODEL: ${{ secrets.QWEN_MODEL }}
+  # 千问是当前可用兜底：给单次长文请求充足时间，但不在 SDK 内重复等待。
+  LLM_TIMEOUT_SECONDS: '300'
+  LLM_MAX_RETRIES: '0'
 
 jobs:
   build:
@@ -38,41 +59,38 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.lock
 
-      - name: Skip if today's article already exists
+      - name: Skip if today's articles already exist
         id: check_today
         run: |
-          if [[ -f "output/$(TZ=Asia/Shanghai date +%F)/article.md" ]]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "今日文章已存在，跳过本次运行"
+          day=$(TZ=Asia/Shanghai date +%F)
+          if [[ -f "output/${day}/article.md" ]]; then
+            echo "news_exists=true" >> "$GITHUB_OUTPUT"
+            echo "今日资讯文章已存在，资讯线跳过"
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "news_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ -f "output/${day}/application.md" ]]; then
+            echo "app_exists=true" >> "$GITHUB_OUTPUT"
+            echo "今日应用文章已存在，应用线跳过"
+          else
+            echo "app_exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Generate one Markdown article
-        if: steps.check_today.outputs.exists == 'false'
-        env:
-          LLM_PROVIDER_ORDER: ${{ vars.LLM_PROVIDER_ORDER }}
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-          LLM_MODEL: ${{ secrets.LLM_MODEL }}
-          LLM_REASONING_EFFORT: ${{ secrets.LLM_REASONING_EFFORT }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          DEEPSEEK_BASE_URL: ${{ secrets.DEEPSEEK_BASE_URL }}
-          DEEPSEEK_MODEL: ${{ secrets.DEEPSEEK_MODEL }}
-          WORKBUDDY_API_KEY: ${{ secrets.WORKBUDDY_API_KEY }}
-          WORKBUDDY_BASE_URL: ${{ secrets.WORKBUDDY_BASE_URL }}
-          WORKBUDDY_MODEL: ${{ secrets.WORKBUDDY_MODEL }}
-          QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
-          QWEN_BASE_URL: ${{ secrets.QWEN_BASE_URL }}
-          QWEN_MODEL: ${{ secrets.QWEN_MODEL }}
-          # 千问是当前可用兜底：给单次长文请求充足时间，但不在 SDK 内重复等待。
-          LLM_TIMEOUT_SECONDS: '300'
-          LLM_MAX_RETRIES: '0'
-        run: python -m src.pipeline --target-chars 2000
+      - name: Generate news article
+        id: gen_news
+        if: steps.check_today.outputs.news_exists == 'false'
+        continue-on-error: true
+        run: python -m src.pipeline --edition news --target-chars 2000
+
+      - name: Generate application article
+        id: gen_app
+        if: steps.check_today.outputs.app_exists == 'false'
+        continue-on-error: true
+        run: python -m src.pipeline --edition application --target-chars 2000
 
       - name: Commit Markdown to GitHub
         id: commit_output
-        if: success() && steps.check_today.outputs.exists == 'false'
+        if: ${{ !cancelled() }}
         run: |
           git config user.name "ai-daily-bot"
           git config user.email "actions@github.com"
@@ -97,3 +115,17 @@ jobs:
           fi
           edition_date=$(TZ=Asia/Shanghai date +%F)
           python -m src.delivery --day-dir "output/${edition_date}"
+
+      - name: Fail if any attempted generation failed
+        if: ${{ always() }}
+        run: |
+          failed=0
+          if [[ "${{ steps.check_today.outputs.news_exists }}" == "false" && "${{ steps.gen_news.outcome }}" == "failure" ]]; then
+            echo "资讯文章生成失败（应用线不受影响）"
+            failed=1
+          fi
+          if [[ "${{ steps.check_today.outputs.app_exists }}" == "false" && "${{ steps.gen_app.outcome }}" == "failure" ]]; then
+            echo "应用文章生成失败（资讯线不受影响）"
+            failed=1
+          fi
+          exit $failed

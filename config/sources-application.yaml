@@ -1,0 +1,96 @@
+# ============================================================
+# 应用线信息源（AI/Agent 应用、产品、工具使用探索）
+# 全部经过实测验证：2026-10-28（标注"未实测"的除外，见下）
+# TODO(学习者): 按你的口味增删。抓取失败的源会自动跳过，不会中断管道。
+# priority: 数字越小越重要，LLM 不可用时的兜底排序也会参考它
+# 与资讯线（config/sources.yaml）的源不重叠；两条线共享同一个已用链接去重池。
+# ============================================================
+sources:
+  # ---------- 一手源（官方发布，最快最准） ----------
+  - name: "OpenAI News"
+    url: "https://openai.com/news/rss.xml"
+    category: "一手源"
+    priority: 1
+
+  # Hugging Face 官方博客，内容偏模型/应用/试验。本地网络无法直连（未实测），
+  # GitHub Actions 海外 runner 可达；连不上时自动跳过，与资讯线 RSSHub 同类处理。
+  - name: "Hugging Face Blog"
+    url: "https://huggingface.co/blog/feed.xml"
+    category: "一手源"
+    priority: 2
+
+  # ---------- 英文聚合（应用与工具动态，漏斗第一层） ----------
+  - name: "Ben's Bites"
+    url: "https://bensbites.com/feed"
+    category: "英文聚合"
+    priority: 1
+
+  - name: "Latent Space"
+    url: "https://www.latent.space/feed"
+    category: "英文聚合/AI 工程"
+    priority: 2
+
+  # ---------- 产品发现 ----------
+  - name: "Product Hunt"
+    url: "https://www.producthunt.com/feed"
+    category: "产品发现"
+    priority: 1
+
+  # ---------- 工具探索与试验（一手实践博客） ----------
+  # LLM 工具用法与试验性应用的最佳单人博客，几乎每天都有动手实测。
+  - name: "Simon Willison"
+    url: "https://simonwillison.net/atom/everything/"
+    category: "工具探索"
+    priority: 1
+
+  - name: "One Useful Thing"
+    url: "https://www.oneusefulthing.org/feed"
+    category: "工具探索"
+    priority: 2
+
+  # ---------- 工作流自动化（行业落地 + 工具用法） ----------
+  - name: "n8n Blog"
+    url: "https://blog.n8n.io/rss/"
+    category: "工作流自动化"
+    priority: 2
+
+  - name: "Zapier Blog"
+    url: "https://zapier.com/blog/feed/"
+    category: "工作流自动化"
+    priority: 3
+
+  # ---------- 社区热点（判断"大家真的在用什么"的信号源） ----------
+  # Reddit 的 .rss 在国内网络无法直连（未实测），GitHub Actions 海外 runner 可达；
+  # 与资讯线的 Reddit 源同机制，失败自动跳过。
+  - name: "Reddit r/ChatGPT"
+    url: "https://www.reddit.com/r/ChatGPT/.rss"
+    category: "社区热点"
+    priority: 2
+
+  - name: "Reddit r/AI_Agents"
+    url: "https://www.reddit.com/r/AI_Agents/.rss"
+    category: "社区热点"
+    priority: 2
+
+  # ---------- 科技媒体（应用视角的报道） ----------
+  - name: "The Decoder"
+    url: "https://the-decoder.com/feed/"
+    category: "科技媒体"
+    priority: 3
+
+  # ---------- 中文源（对照补充） ----------
+  - name: "量子位"
+    url: "https://www.qbitai.com/feed"
+    category: "中文"
+    priority: 2
+
+  - name: "爱范儿"
+    url: "https://www.ifanr.com/feed"
+    category: "中文"
+    priority: 3
+
+  # 工具使用与效率探索的中文主力源
+  - name: "少数派"
+    url: "https://sspai.com/feed"
+    category: "中文"
+    priority: 3

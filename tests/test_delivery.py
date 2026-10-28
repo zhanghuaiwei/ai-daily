@@ -47,13 +47,20 @@ def test_delivery_error_redacts_sendkey(monkeypatch):
     assert secret not in str(caught.value)
 
 
-def test_load_daily_markdown_extracts_title(tmp_path):
+def test_load_daily_markdowns_reads_edition_files(tmp_path):
     day_dir = tmp_path / "2026-08-27"
     day_dir.mkdir()
     (day_dir / "article.md").write_text("# 一个吸引人的标题？\n\n正文\n", encoding="utf-8")
-    path, markdown = delivery.load_daily_markdown(day_dir)
-    assert path.name == "article.md"
-    assert delivery.article_title(markdown) == "一个吸引人的标题？"
+    loaded = delivery.load_daily_markdowns(day_dir)
+    assert [path.name for path, _markdown in loaded] == ["article.md"]
+    assert delivery.article_title(loaded[0][1]) == "一个吸引人的标题？"
+
+
+def test_load_daily_markdowns_requires_at_least_one_article(tmp_path):
+    day_dir = tmp_path / "2026-08-27"
+    day_dir.mkdir()
+    with pytest.raises(delivery.DeliveryError, match="找不到当日"):
+        delivery.load_daily_markdowns(day_dir)
 
 
 def test_delivery_never_checks_quality_gate(monkeypatch, tmp_path):
@@ -66,7 +73,9 @@ def test_delivery_never_checks_quality_gate(monkeypatch, tmp_path):
         "send_to_wechat",
         lambda title, markdown, sendkey=None: sent.append((title, markdown, sendkey)) or {"code": 0},
     )
-    assert delivery.deliver_daily_markdown(day_dir, sendkey="test-key") == {"code": 0}
+    assert delivery.deliver_daily_markdown(day_dir, sendkey="test-key") == {
+        "article.md": {"code": 0}
+    }
     assert sent[0][0] == "标题：发生了什么？"
 
 
@@ -83,7 +92,55 @@ def test_delivery_strips_hidden_source_comments(monkeypatch, tmp_path):
         "send_to_wechat",
         lambda title, markdown, sendkey=None: sent.append((title, markdown)) or {"code": 0},
     )
-    assert delivery.deliver_daily_markdown(day_dir, sendkey="test-key") == {"code": 0}
+    assert delivery.deliver_daily_markdown(day_dir, sendkey="test-key") == {
+        "article.md": {"code": 0}
+    }
     assert "ai-daily-sources" not in sent[0][1]
     assert "https://example.com/source" not in sent[0][1]
     assert sent[0][1].endswith("正文")
+
+
+def test_delivery_prefixes_application_title_only(monkeypatch, tmp_path):
+    day_dir = tmp_path / "2026-08-27"
+    day_dir.mkdir()
+    (day_dir / "article.md").write_text("# 资讯标题\n\n正文\n", encoding="utf-8")
+    (day_dir / "application.md").write_text("# 应用标题\n\n正文\n", encoding="utf-8")
+    sent = []
+    monkeypatch.setattr(
+        delivery,
+        "send_to_wechat",
+        lambda title, markdown, sendkey=None: sent.append(title) or {"code": 0},
+    )
+    delivered = delivery.deliver_daily_markdown(day_dir, sendkey="test-key")
+    assert sorted(delivered) == ["application.md", "article.md"]
+    assert sent == ["资讯标题", "AI应用|应用标题"]
+
+
+def test_delivery_partial_failure_still_returns_successes(monkeypatch, tmp_path):
+    day_dir = tmp_path / "2026-08-27"
+    day_dir.mkdir()
+    (day_dir / "article.md").write_text("# 资讯标题\n\n正文\n", encoding="utf-8")
+    (day_dir / "application.md").write_text("# 应用标题\n\n正文\n", encoding="utf-8")
+
+    def fake_send(title, _markdown, sendkey=None):
+        if title.startswith("AI应用|"):
+            raise delivery.DeliveryError("微信推送返回 HTTP 500")
+        return {"code": 0}
+
+    monkeypatch.setattr(delivery, "send_to_wechat", fake_send)
+    delivered = delivery.deliver_daily_markdown(day_dir, sendkey="test-key")
+    assert list(delivered) == ["article.md"]
+
+
+def test_delivery_all_failures_raise(monkeypatch, tmp_path):
+    day_dir = tmp_path / "2026-08-27"
+    day_dir.mkdir()
+    (day_dir / "article.md").write_text("# 资讯标题\n\n正文\n", encoding="utf-8")
+    (day_dir / "application.md").write_text("# 应用标题\n\n正文\n", encoding="utf-8")
+
+    def fail(_title, _markdown, sendkey=None):
+        raise delivery.DeliveryError("微信推送返回 HTTP 500")
+
+    monkeypatch.setattr(delivery, "send_to_wechat", fail)
+    with pytest.raises(delivery.DeliveryError, match="article.md"):
+        delivery.deliver_daily_markdown(day_dir, sendkey="test-key")

@@ -44,3 +44,6 @@ htmlcov/
 # 本地测试辅助脚本
 run-local.sh
 uv.lock
+
+# ZCode 会话本地状态
+.zcode/

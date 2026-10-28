@@ -1,6 +1,10 @@
 import json
 
-from src.history import load_recent_links, load_recent_topic_titles
+from src.history import (
+    load_cross_edition_titles,
+    load_recent_links,
+    load_recent_topic_titles,
+)
 
 
 def test_history_reads_all_markdown_editions_and_legacy_json(tmp_path):
@@ -52,3 +56,37 @@ def test_history_excludes_current_day_and_can_limit_window(tmp_path):
         )
     assert load_recent_topic_titles(tmp_path, "2026-08-27", history_days=2) == ["2026-08-26"]
     assert load_recent_links(tmp_path, "2026-08-27", history_days=0) == set()
+
+
+def test_application_titles_are_separate_but_links_share_one_pool(tmp_path):
+    day = tmp_path / "2026-08-26"
+    day.mkdir()
+    (day / "article.md").write_text(
+        "# 资讯话题\n\n<!-- ai-daily-sources:\n  https://example.com/news-only\n-->\n",
+        encoding="utf-8",
+    )
+    (day / "application.md").write_text(
+        "# 应用话题\n\n<!-- ai-daily-sources:\n  https://example.com/app-only\n-->\n",
+        encoding="utf-8",
+    )
+    assert load_recent_topic_titles(tmp_path, "2026-08-27") == ["资讯话题"]
+    assert load_recent_topic_titles(tmp_path, "2026-08-27", edition="application") == ["应用话题"]
+    assert load_recent_links(tmp_path, "2026-08-27") == {
+        "https://example.com/news-only",
+        "https://example.com/app-only",
+    }
+
+
+def test_cross_edition_titles_cover_only_the_same_day(tmp_path):
+    day = tmp_path / "2026-08-27"
+    day.mkdir()
+    (day / "article.md").write_text("# 当天资讯标题\n\n正文\n", encoding="utf-8")
+    older = tmp_path / "2026-08-26"
+    older.mkdir()
+    (older / "article.md").write_text("# 往日资讯标题\n\n正文\n", encoding="utf-8")
+    assert load_cross_edition_titles(tmp_path, "2026-08-27", "application") == ["当天资讯标题"]
+    assert load_cross_edition_titles(tmp_path, "2026-08-27", "news") == []
+
+
+def test_cross_edition_titles_tolerate_missing_files(tmp_path):
+    assert load_cross_edition_titles(tmp_path, "2026-08-27", "application") == []

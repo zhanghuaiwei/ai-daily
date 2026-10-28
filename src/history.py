@@ -1,4 +1,9 @@
-"""Read all prior Markdown articles to prevent topic and source repetition."""
+"""Read all prior Markdown articles to prevent topic and source repetition.
+
+链接去重池是两条线路共享的：任何 URL 在全仓库范围内最多使用一次。
+标题去重按线路分开（应用线可以换角度写资讯线写过的旧事件），但同一天内
+两条线不得撞同一话题（见 ``load_cross_edition_titles``）。
+"""
 
 from __future__ import annotations
 
@@ -8,6 +13,7 @@ import logging
 import re
 from pathlib import Path
 
+from .editions import EDITIONS
 from .safety import clean_plain_text, normalize_url_for_dedupe
 
 log = logging.getLogger(__name__)
@@ -28,12 +34,25 @@ def _included_day(name: str, current_day: str, history_days: int | None) -> bool
 
 
 def _article_markdown_paths(day_dir: Path) -> list[Path]:
-    """Return the new single-file artifact plus legacy per-article Markdown files."""
+    """Every edition's artifact of the day: all of them feed the shared link pool."""
     paths = []
-    current = day_dir / "article.md"
+    for spec in EDITIONS.values():
+        current = day_dir / spec["filename"]
+        if current.is_file():
+            paths.append(current)
+    paths.extend(sorted(day_dir.glob("article-*/article.md")))
+    return paths
+
+
+def _edition_markdown_paths(day_dir: Path, edition: str) -> list[Path]:
+    """One edition's own artifacts; legacy per-article dirs belong to the news line."""
+    filename = EDITIONS.get(edition, {}).get("filename", "article.md")
+    paths = []
+    current = day_dir / filename
     if current.is_file():
         paths.append(current)
-    paths.extend(sorted(day_dir.glob("article-*/article.md")))
+    if edition == "news":
+        paths.extend(sorted(day_dir.glob("article-*/article.md")))
     return paths
 
 
@@ -93,8 +112,9 @@ def load_recent_topic_titles(
     out_root: str | Path,
     current_day: str,
     history_days: int | None = None,
+    edition: str = "news",
 ) -> list[str]:
-    """Load every prior final title, including legacy JSON artifacts."""
+    """Load the edition's prior final titles (legacy JSON artifacts are news history)."""
     if history_days is not None and history_days <= 0:
         return []
     root = Path(out_root)
@@ -111,17 +131,39 @@ def load_recent_topic_titles(
     for day_dir in sorted(root.iterdir(), reverse=True):
         if not day_dir.is_dir() or not _included_day(day_dir.name, current_day, history_days):
             continue
-        for markdown_path in _article_markdown_paths(day_dir):
+        for markdown_path in _edition_markdown_paths(day_dir, edition):
             try:
                 match = _MARKDOWN_TITLE_RE.search(markdown_path.read_text(encoding="utf-8"))
                 add(match.group(1) if match else "")
             except OSError as err:
                 log.warning("历史标题读取失败: %s (%s)", markdown_path, err)
-        for article_path in day_dir.glob("article-*/article.json"):
-            try:
-                bundle = json.loads(article_path.read_text(encoding="utf-8"))
-                add(bundle.get("topic", {}).get("working_title"))
-                add(bundle.get("article", {}).get("selected_title"))
-            except (OSError, json.JSONDecodeError, AttributeError) as err:
-                log.warning("旧版文章标题读取失败: %s (%s)", article_path, err)
+        if edition == "news":
+            for article_path in day_dir.glob("article-*/article.json"):
+                try:
+                    bundle = json.loads(article_path.read_text(encoding="utf-8"))
+                    add(bundle.get("topic", {}).get("working_title"))
+                    add(bundle.get("article", {}).get("selected_title"))
+                except (OSError, json.JSONDecodeError, AttributeError) as err:
+                    log.warning("旧版文章标题读取失败: %s (%s)", article_path, err)
+    return titles
+
+
+def load_cross_edition_titles(
+    out_root: str | Path,
+    current_day: str,
+    edition: str,
+) -> list[str]:
+    """Titles already written today by the other edition, so two lines never clash."""
+    titles: list[str] = []
+    for name, spec in EDITIONS.items():
+        if name == edition:
+            continue
+        path = Path(out_root) / current_day / spec["filename"]
+        try:
+            match = _MARKDOWN_TITLE_RE.search(path.read_text(encoding="utf-8"))
+        except OSError:
+            continue
+        title = clean_plain_text(match.group(1) if match else "", 120)
+        if title and title not in titles:
+            titles.append(title)
     return titles

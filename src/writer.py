@@ -75,7 +75,7 @@ class ArticleGenerationError(RuntimeError):
     """Raised when no complete daily article can be produced."""
 
 WRITE_PROMPT = """请根据下面的选题和证据包，直接写成一篇完成编辑、可以发布的中文公众号文章。
-
+{edition_angle}
 事实边界：
 - 只使用证据包中的信息，不得用记忆补造数字、结论、机构表态、时间、采访、体验或引用原话；
 - 区分已证实事实、来源方自述、合理推断和未知信息；证据不足时降低语气或明确写出不确定性；
@@ -116,6 +116,16 @@ score 按准确性、具体性、读者收益和传播力综合评分，selected
 "selected_title":"候选中分数最高的标题","abstract":"80-120字摘要","lead":"开头段",
 "sections":[{{"heading":"中文小标题","paragraphs":["段落文本"]}}],
 "conclusion":"自然收束，不喊口号"}}"""
+
+# 线路内容角度：结构、去 AI 味、标题规则完全共享，只有写作焦点不同。
+_EDITION_ANGLE = {
+    "news": "",
+    "application": """本篇属于「AI 应用」线路：文章必须回答“读者能用它做什么、怎么用起来、对谁有用”。
+- 围绕一个具体应用、产品、智能体或工具用法写作，讲清使用入口和上手路径，多用真实使用场景；
+- 行业落地写清“谁在用、把什么流程跑通、带来了什么变化”；试验性应用写清“试了什么、效果如何、离实用还差什么”；
+- 不写成工具清单、产品说明书或教程合集，背景与原理只保留理解用法所必需的部分。
+""",
+}
 
 
 def _sanitize_title_candidates(raw: object, strict: bool = True) -> list[dict]:
@@ -208,6 +218,7 @@ def write_article(
     topic: dict,
     target_chars: int = 1_200,
     model: str | None = None,
+    edition: str = "news",
 ) -> dict:
     payload = {
         "topic": {key: topic.get(key) for key in ("working_title", "angle", "reason")},
@@ -230,7 +241,11 @@ def write_article(
     }
     raw = request_json(
         SYSTEM_PROMPT,
-        WRITE_PROMPT.format(target_chars=target_chars, payload=json.dumps(payload, ensure_ascii=False)),
+        WRITE_PROMPT.format(
+            target_chars=target_chars,
+            payload=json.dumps(payload, ensure_ascii=False),
+            edition_angle=_EDITION_ANGLE.get(edition, ""),
+        ),
         model=model,
         temperature=0.6,
         max_output_tokens=max(4_000, min(7_000, target_chars * 3)),
@@ -343,11 +358,12 @@ def produce_article(
     target_chars: int = 1_200,
     model: str | None = None,
     dry_run: bool = False,
+    edition: str = "news",
 ) -> dict:
     if dry_run:
         return fallback_article(topic, "dry-run 不调用大模型")
     try:
-        article = write_article(topic, target_chars=target_chars, model=model)
+        article = write_article(topic, target_chars=target_chars, model=model, edition=edition)
         return {
             "topic": topic,
             "article": article,

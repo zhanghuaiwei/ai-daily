@@ -68,3 +68,11 @@ def test_write_output_creates_only_one_markdown_file(tmp_path):
     path = write_article_output(bundle(), out_root=tmp_path, date="2026-08-27")
     assert path == tmp_path / "2026-08-27" / "article.md"
     assert sorted(item.name for item in path.parent.iterdir()) == ["article.md"]
+
+
+def test_write_output_honors_edition_filename(tmp_path):
+    path = write_article_output(
+        bundle(), out_root=tmp_path, date="2026-08-27", filename="application.md"
+    )
+    assert path == tmp_path / "2026-08-27" / "application.md"
+    assert path.read_text(encoding="utf-8").startswith("# AI 新变化：为什么这次不一样？")

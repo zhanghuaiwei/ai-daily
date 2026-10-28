@@ -72,13 +72,14 @@ def write_article_output(
     bundle: dict,
     out_root: str | Path = "output",
     date: str | None = None,
+    filename: str = "article.md",
 ) -> Path:
-    """Atomically write the day's only artifact: ``article.md``."""
+    """Atomically write one edition's only artifact: ``<day_dir>/<filename>``."""
     edition_date = date or _today_str()
     day_dir = Path(out_root) / edition_date
     day_dir.mkdir(parents=True, exist_ok=True)
-    destination = day_dir / "article.md"
-    temporary = day_dir / ".article.md.tmp"
+    destination = day_dir / filename
+    temporary = day_dir / f".{filename}.tmp"
     temporary.write_text(render_article_markdown(bundle), encoding="utf-8")
     temporary.replace(destination)
     # A same-day migration/rerun must leave one Markdown artifact, never the old multi-file set.

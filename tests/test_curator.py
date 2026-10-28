@@ -333,3 +333,40 @@ def test_provider_error_summary_redacts_api_key():
     summary = curator._safe_error_summary(RuntimeError("bad secret-key request"), provider)
     assert "secret-key" not in summary
     assert "***" in summary
+
+
+def test_application_edition_uses_application_topic_prompt(monkeypatch):
+    items = [make_item("Agent 应用上线", "S1", 1, link="https://example.com/app-1")]
+    raw_topics = [{
+        "working_title": "Agent 应用话题",
+        "angle": "应用用法",
+        "reason": "读者能上手",
+        "source_links": [items[0].link],
+    }]
+    captured = {}
+
+    def fake_request(_system, prompt, **_kwargs):
+        captured["prompt"] = prompt
+        return {"topics": raw_topics}
+
+    monkeypatch.setattr(curator, "_configured_providers", lambda: [object()])
+    monkeypatch.setattr(curator, "request_json", fake_request)
+    topics = curator.plan_topics_with_llm(items, target=1, maximum=1, edition="application")
+    assert len(topics) == 1 and topics[0]["ai_selected"]
+    assert "这是一篇 AI 应用主题公众号的文章" in captured["prompt"]
+    assert "怎么用起来、对谁有用" in captured["prompt"]
+    assert "这是一篇 AI 主题公众号的文章" not in captured["prompt"]
+
+
+def test_news_edition_keeps_news_topic_prompt(monkeypatch):
+    items = [make_item("AI 事件", "S1", 1, link="https://example.com/news-1")]
+    captured = {}
+
+    def fake_request(_system, prompt, **_kwargs):
+        captured["prompt"] = prompt
+        return {"topics": []}
+
+    monkeypatch.setattr(curator, "_configured_providers", lambda: [object()])
+    monkeypatch.setattr(curator, "request_json", fake_request)
+    curator.plan_topics_with_llm(items, target=1, maximum=1, edition="news")
+    assert "这是一篇 AI 主题公众号的文章" in captured["prompt"]
