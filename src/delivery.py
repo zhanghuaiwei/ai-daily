@@ -38,8 +38,12 @@ def article_title(markdown: str) -> str:
     return clean_plain_text(match.group(1) if match else "", 80) or "AI 每日热门话题"
 
 
-def load_daily_markdowns(day_dir: Path) -> list[tuple[Path, str]]:
-    """Load every edition article present in the day directory (news + application)."""
+def load_daily_markdowns(day_dir: Path, only: list[str] | None = None) -> list[tuple[Path, str]]:
+    """Load every edition article present in the day directory (news + application).
+
+    ``only`` 把推送范围限制在指定文件名（如重跑某条线路时只推新生成的那篇）；
+    点名文件全部缺失时直接报错，避免把“没生成出来”误当成“无事可推”。
+    """
     day_root = day_dir.resolve()
     loaded: list[tuple[Path, str]] = []
     for spec in EDITIONS.values():
@@ -53,6 +57,11 @@ def load_daily_markdowns(day_dir: Path) -> list[tuple[Path, str]]:
         if not markdown.strip():
             raise DeliveryError(f"当日 Markdown 文章为空: {spec['filename']}")
         loaded.append((article_path, markdown))
+    if only is not None:
+        wanted = {name.strip() for name in only if name.strip()}
+        loaded = [entry for entry in loaded if entry[0].name in wanted]
+        if not loaded:
+            raise DeliveryError("请求推送的文章不存在: " + "、".join(sorted(wanted)))
     if not loaded:
         raise DeliveryError("找不到当日 Markdown 文章")
     return loaded
@@ -91,15 +100,17 @@ def send_to_wechat(
     return result
 
 
-def deliver_daily_markdown(day_dir: Path, sendkey: str | None = None) -> dict:
-    """Send every edition article present; no quality score can block delivery.
+def deliver_daily_markdown(
+    day_dir: Path, sendkey: str | None = None, only: list[str] | None = None
+) -> dict:
+    """Send every requested edition article present; no quality score can block delivery.
 
     每篇独立尝试、互不拖垮：部分成功时返回成功映射并记录失败日志，
     全部失败才抛出 DeliveryError，交由调用方以失败退出码处理。
     """
     delivered: dict[str, dict] = {}
     failures: list[str] = []
-    for path, markdown in load_daily_markdowns(day_dir):
+    for path, markdown in load_daily_markdowns(day_dir, only=only):
         title = f"{edition_title_prefix(path.name)}{article_title(markdown)}"
         try:
             delivered[path.name] = send_to_wechat(
@@ -116,9 +127,15 @@ def deliver_daily_markdown(day_dir: Path, sendkey: str | None = None) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description="把当日 Markdown 文章推送到个人微信")
     parser.add_argument("--day-dir", type=Path, required=True)
+    parser.add_argument(
+        "--only",
+        default=None,
+        help="只推送指定文件名（逗号分隔，如 application.md）；不传则推送目录下全部线路文章",
+    )
     args = parser.parse_args()
+    only = [name for name in args.only.split(",")] if args.only else None
     try:
-        delivered = deliver_daily_markdown(args.day_dir)
+        delivered = deliver_daily_markdown(args.day_dir, only=only)
         print(f"已推送 {len(delivered)} 篇 Markdown 文章到个人微信")
         return 0
     except DeliveryError as err:

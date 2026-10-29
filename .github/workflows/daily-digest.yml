@@ -109,12 +109,24 @@ jobs:
         env:
           WECHAT_SENDKEY: ${{ secrets.WECHAT_SENDKEY }}
         run: |
+          # 只推送本次运行新生成的线路：已存在的线路不重复推送。
+          deliver_list=""
+          if [[ "${{ steps.check_today.outputs.news_exists }}" == "false" ]]; then
+            deliver_list="article.md"
+          fi
+          if [[ "${{ steps.check_today.outputs.app_exists }}" == "false" ]]; then
+            deliver_list="${deliver_list:+${deliver_list},}application.md"
+          fi
+          if [[ -z "${deliver_list}" ]]; then
+            echo "本次运行没有新生成的文章，跳过微信推送"
+            exit 0
+          fi
           if [[ -z "${WECHAT_SENDKEY}" ]]; then
             echo "WECHAT_SENDKEY 未配置"
             exit 1
           fi
           edition_date=$(TZ=Asia/Shanghai date +%F)
-          python -m src.delivery --day-dir "output/${edition_date}"
+          python -m src.delivery --day-dir "output/${edition_date}" --only "${deliver_list}"
 
       - name: Fail if any attempted generation failed
         if: ${{ always() }}

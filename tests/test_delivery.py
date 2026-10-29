@@ -116,6 +116,32 @@ def test_delivery_prefixes_application_title_only(monkeypatch, tmp_path):
     assert sent == ["资讯标题", "AI应用|应用标题"]
 
 
+def test_delivery_only_filter_pushes_just_named_files(monkeypatch, tmp_path):
+    day_dir = tmp_path / "2026-08-27"
+    day_dir.mkdir()
+    (day_dir / "article.md").write_text("# 资讯标题\n\n正文\n", encoding="utf-8")
+    (day_dir / "application.md").write_text("# 应用标题\n\n正文\n", encoding="utf-8")
+    sent = []
+    monkeypatch.setattr(
+        delivery,
+        "send_to_wechat",
+        lambda title, markdown, sendkey=None: sent.append(title) or {"code": 0},
+    )
+    delivered = delivery.deliver_daily_markdown(
+        day_dir, sendkey="test-key", only=["application.md"]
+    )
+    assert list(delivered) == ["application.md"]
+    assert sent == ["AI应用|应用标题"]
+
+
+def test_delivery_only_filter_fails_when_named_file_missing(monkeypatch, tmp_path):
+    day_dir = tmp_path / "2026-08-27"
+    day_dir.mkdir()
+    (day_dir / "article.md").write_text("# 资讯标题\n\n正文\n", encoding="utf-8")
+    with pytest.raises(delivery.DeliveryError, match="application.md"):
+        delivery.load_daily_markdowns(day_dir, only=["application.md"])
+
+
 def test_delivery_partial_failure_still_returns_successes(monkeypatch, tmp_path):
     day_dir = tmp_path / "2026-08-27"
     day_dir.mkdir()
