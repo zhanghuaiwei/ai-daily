@@ -1,9 +1,10 @@
 # ============================================================
 # 应用线信息源（AI/Agent 应用、产品、工具使用探索）
-# 全部经过实测验证：2026-10-28（标注"未实测"的除外，见下）
+# 全部经过实测验证：2026-10-28（LangChain/CrewAI/freeCodeCamp 为 2026-10-29 补充）
 # TODO(学习者): 按你的口味增删。抓取失败的源会自动跳过，不会中断管道。
 # priority: 数字越小越重要，LLM 不可用时的兜底排序也会参考它
 # 与资讯线（config/sources.yaml）的源不重叠；两条线共享同一个已用链接去重池。
+# 应用线只写可验证、可实践的教程/实践方案，教程密度高的源权重更高。
 # ============================================================
 sources:
   # ---------- 一手源（官方发布，最快最准） ----------
@@ -47,6 +48,24 @@ sources:
     url: "https://www.oneusefulthing.org/feed"
     category: "工具探索"
     priority: 2
+
+  # ---------- Agent 框架教程（官方教程与实战，2026-10-29 补充） ----------
+  - name: "LangChain Blog"
+    url: "https://www.langchain.com/blog/rss.xml"
+    category: "Agent 框架教程"
+    priority: 2
+
+  - name: "CrewAI Blog"
+    url: "https://blog.crewai.com/rss"
+    category: "Agent 框架教程"
+    priority: 2
+
+  # ---------- 动手教程（步骤化开发教程，2026-10-29 补充） ----------
+  # freeCodeCamp 主 feed，AI/LLM 动手教程占比高，非 AI 条目会被 AI 相关性过滤掉
+  - name: "freeCodeCamp"
+    url: "https://www.freecodecamp.org/news/rss/"
+    category: "动手教程"
+    priority: 3
 
   # ---------- 工作流自动化（行业落地 + 工具用法） ----------
   - name: "n8n Blog"

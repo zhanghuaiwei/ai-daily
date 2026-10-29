@@ -85,7 +85,7 @@ GPT → DeepSeek → WorkBuddy → 千问，千问固定为最终兜底（配置
 | 产物 | `output/<日期>/article.md` | `output/<日期>/application.md` |
 | 微信标题 | 原标题 | 「AI应用\|」前缀 |
 
-去重语义：链接池两条线共享（同一 URL 全仓库最多用一次）；标题史按线路分开扫描（应用线可以在往日之后换应用角度重写同一事件），但 `load_cross_edition_titles` 会把当天另一条线已写的标题并入候选去重，保证同日不撞题。选题与写作的差异只体现在提示词：`APPLICATION_TOPIC_PROMPT` 限定应用/产品/工具/行业落地并拒绝融资、榜单、无应用角度的纯模型新闻；`WRITE_PROMPT` 通过 `{edition_angle}` 占位符按线路插入“能用它做什么、怎么用起来、对谁有用”的内容要求，结构、去 AI 味、标题规则零改动。
+去重语义：链接池两条线共享（同一 URL 全仓库最多用一次）；标题史按线路分开扫描（应用线可以在往日之后换应用角度重写同一事件），但 `load_cross_edition_titles` 会把当天另一条线已写的标题并入候选去重，保证同日不撞题。选题与写作的差异只体现在提示词：`APPLICATION_TOPIC_PROMPT` 只接受"照着做就能复现"的候选——必须带上手细节（步骤、命令、提示词、配置、实测结果），描述性新闻（发布、融资、跑分）直接放弃；`WRITE_PROMPT` 通过 `{edition_angle}` 占位符按线路插入教程结构要求（前置条件 → 分步做法 → "看到什么才算成功" → 适用边界），并声明该结构覆盖共享结构，步骤只能来自证据包、不得虚构。2026-10-29 收紧：应用线从"应用资讯"进一步定位为"可验证、可实践的教程/实践方案"。
 
 ## 5. 交付链路
 
@@ -131,7 +131,7 @@ python -m pytest
 - SSRF 检查存在理论上的 DNS rebinding 竞态（解析与连接两次 DNS），当前威胁模型下可接受；
 - Server酱 是第三方服务，推送正文会经过其中转（README 已声明）；
 - 自动生成内容仍应在公开发布前人工事实核验；
-- 应用线 15 个源中 3 个（Hugging Face、两个 Reddit 子版）本地网络无法直连、未实测，靠 Actions 海外 runner 抓取，失败自动跳过（与资讯线 RSSHub 同类处理）；r/AI_Agents 本地实测触发 429 限流，海外 runner 上频率更低；
+- 应用线 18 个源中 Hugging Face 与两个 Reddit 子版本地网络无法直连、未实测，靠 Actions 海外 runner 抓取，失败自动跳过（与资讯线 RSSHub 同类处理）；r/AI_Agents 本地实测触发 429 限流，海外 runner 上频率更低；
 - 两条线在同一个 workflow run 中先后生成，LLM 调用量翻倍（选题 + 成稿各 2 次），仍在 60 分钟超时与供应商额度预算内。
 
 ## 10. 应用线扩展记录（2026-10-28）
@@ -146,3 +146,4 @@ python -m pytest
 | 6 | `renderer.write_article_output` 文件名参数化 | 应用线产物 `application.md`，原子写入与旧产物清理逻辑不变 |
 | 7 | `delivery.py` 改为逐篇独立推送 day 目录全部线路文章 | 一篇推送失败不拖垮另一篇；全部失败才报错；应用文件标题加「AI应用\|」前缀 |
 | 8 | `daily-digest.yml` 双生成步骤（`continue-on-error`）+ 守门步骤 | 两条线互相独立交付，任一执行过的线失败仍让工作流标红，失败可见性不降级 |
+| 9 | 应用线收紧为教程/实践方案（2026-10-29）：重写 `APPLICATION_TOPIC_PROMPT` 与 `_EDITION_ANGLE`，新增 LangChain/CrewAI/freeCodeCamp 三个教程型源 | 用户反馈：描述性报道不是要的应用文章；应用篇必须可验证、可实践，照着做能复现 |

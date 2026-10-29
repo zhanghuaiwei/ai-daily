@@ -353,8 +353,9 @@ def test_application_edition_uses_application_topic_prompt(monkeypatch):
     monkeypatch.setattr(curator, "request_json", fake_request)
     topics = curator.plan_topics_with_llm(items, target=1, maximum=1, edition="application")
     assert len(topics) == 1 and topics[0]["ai_selected"]
-    assert "这是一篇 AI 应用主题公众号的文章" in captured["prompt"]
-    assert "怎么用起来、对谁有用" in captured["prompt"]
+    assert "这是一篇 AI 应用实践主题公众号的文章" in captured["prompt"]
+    assert "照着做就能复现" in captured["prompt"]
+    assert "没有可复现做法的描述性新闻" in captured["prompt"]
     assert "这是一篇 AI 主题公众号的文章" not in captured["prompt"]
 
 

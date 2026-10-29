@@ -164,7 +164,8 @@ def test_write_article_edition_angle_reaches_prompt(monkeypatch):
 
     writer.write_article(topic, target_chars=2_000, edition="application")
     assert "「AI 应用」线路" in captured["prompt"]
-    assert "怎么用起来、对谁有用" in captured["prompt"]
+    assert "照着复现出同样的结果" in captured["prompt"]
+    assert "看到什么才算成功" in captured["prompt"]
     assert captured["kwargs"]["max_output_tokens"] == 6_000
 
 
